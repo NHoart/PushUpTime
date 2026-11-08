@@ -2,6 +2,7 @@ import Combine
 import FamilyControls
 import Foundation
 import ManagedSettings
+import UIKit
 
 /// Zentraler Zustand der App: Shortcut-Regeln, optionale Bildschirmzeit-Sperren
 /// und die laufende Challenge.
@@ -246,10 +247,20 @@ final class AppModel: ObservableObject {
         challenge = ChallengeRequest(kind: .screenTime(entry))
     }
 
-    /// Beendet die Challenge, ohne Liegestütze zu zählen und ohne die Statistik zu
-    /// verändern – der Ausweg aus der Meldung, die per Shortcuts-Automatisierung aufgeht.
+    /// Beendet die Challenge, ohne Liegestütze zu zählen, und springt zurück in die
+    /// App, die sie per Shortcuts-Automatisierung ausgelöst hat.
     func skipChallenge() {
+        guard let request = challenge else { return }
         challenge = nil
+
+        guard case .shortcut(let name) = request.kind,
+              let target = AppDeepLink.url(forAppNamed: name) else { return }
+
+        // Erst die Challenge-Ansicht schließen lassen, dann die App öffnen.
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            _ = await UIApplication.shared.open(target)
+        }
     }
 
     /// Gibt die aktuell gesperrte App frei und beendet die Challenge.

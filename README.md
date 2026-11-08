@@ -98,6 +98,9 @@ App-ID beginnen (`<app-id>.monitor`, `<app-id>.shield`).
 
 - Die Sperre ist Selbstkontrolle: iOS erlaubt es nicht, sie unumgehbar zu machen.
 - Notaus in der Challenge: „Notaus“ 3 Sekunden halten entsperrt die App.
+- „Überspringen“ auf dem Challenge-Screen schließt sie ohne Zählung und springt
+  zurück in die App (bekannte URL-Schemata, z. B. Instagram, YouTube, TikTok).
+  Bei unbekanntem App-Namen bleibt es beim Schließen.
 - Alternativ die Sperre in iOS-Einstellungen → Bildschirmzeit deaktivieren bzw.
   PushUpTime den Bildschirmzeit-Zugriff entziehen.
 - Kamera-Zählung braucht seitliches Ablegen des iPhones, sodass Schulter, Ellbogen
