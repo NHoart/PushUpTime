@@ -133,6 +133,21 @@ struct ChallengeView: View {
 
     private var footer: some View {
         VStack(spacing: 12) {
+            // Ausweg aus der Meldung: schließt die Zählung ohne Liegestütze.
+            if !request.isBlocking {
+                Button {
+                    model.skipChallenge()
+                } label: {
+                    Text("Überspringen")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(.white.opacity(0.14)))
+                }
+                .accessibilityHint("Beendet die Challenge, ohne Liegestütze zu zählen.")
+            }
+
             HStack(spacing: 8) {
                 Image(systemName: "iphone.gen3")
                 Text("iPhone seitlich ablegen, sodass Schulter, Ellbogen und Handgelenk sichtbar sind.")

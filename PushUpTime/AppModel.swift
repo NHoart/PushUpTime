@@ -246,6 +246,12 @@ final class AppModel: ObservableObject {
         challenge = ChallengeRequest(kind: .screenTime(entry))
     }
 
+    /// Beendet die Challenge, ohne Liegestütze zu zählen und ohne die Statistik zu
+    /// verändern – der Ausweg aus der Meldung, die per Shortcuts-Automatisierung aufgeht.
+    func skipChallenge() {
+        challenge = nil
+    }
+
     /// Gibt die aktuell gesperrte App frei und beendet die Challenge.
     func emergencyUnlockCurrent() {
         guard let request = challenge, case .screenTime(let entry) = request.kind else {
