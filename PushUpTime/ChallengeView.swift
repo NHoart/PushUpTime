@@ -19,10 +19,9 @@ struct ChallengeView: View {
 
             CameraPreview(camera: camera)
                 .ignoresSafeArea()
-                .opacity(0.6)
 
             LinearGradient(
-                colors: [.black.opacity(0.75), .black.opacity(0.25), .black.opacity(0.85)],
+                colors: [.black.opacity(0.8), .black.opacity(0.3), .black.opacity(0.85)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -51,6 +50,12 @@ struct ChallengeView: View {
                 Text(hint)
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundStyle(hintColor)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Text(diagnostic)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.35))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
@@ -169,6 +174,23 @@ struct ChallengeView: View {
         }
     }
 
+    /// Kurze Rückmeldung, ob Kamera und Pose überhaupt ankommen.
+    private var diagnostic: String {
+        switch camera.status {
+        case .idle, .requesting:
+            return "Kamera startet …"
+        case .denied:
+            return "Kamera: kein Zugriff"
+        case .noCamera:
+            return "Kamera: nicht gefunden"
+        case .running:
+            if let angle = camera.poseAngle {
+                return "Pose erkannt · Ellbogen \(Int(angle.rounded()))°"
+            }
+            return "Kamera läuft · keine Pose im Bild"
+        }
+    }
+
     private var hintColor: Color {
         switch camera.phase {
         case .down:
@@ -187,34 +209,42 @@ struct ChallengeView: View {
 }
 
 struct CameraPreview: UIViewRepresentable {
-    let camera: PushUpCamera
+    @ObservedObject var camera: PushUpCamera
 
     func makeUIView(context: Context) -> PreviewUIView {
-        PreviewUIView(preview: camera.makePreviewLayer())
+        let view = PreviewUIView()
+        view.previewLayer.videoGravity = .resizeAspectFill
+        view.previewLayer.session = camera.session
+        view.attachedStatus = camera.status
+        return view
     }
 
-    func updateUIView(_ uiView: PreviewUIView, context: Context) {}
+    func updateUIView(_ uiView: PreviewUIView, context: Context) {
+        // Eine Vorschau-Ebene, die vor dem Aufbau der Session zugewiesen wurde,
+        // bleibt schwarz. Deshalb bei jedem Statuswechsel neu zuweisen.
+        guard uiView.attachedStatus != camera.status else { return }
+        uiView.attachedStatus = camera.status
+        uiView.previewLayer.session = camera.session
+    }
 }
 
+/// UIView, dessen Hintergrund-Layer direkt die Vorschau-Ebene ist – so füllt
+/// das Kamerabild die View immer aus, ohne manuelles Frame-Handling.
 final class PreviewUIView: UIView {
-    private let preview: AVCaptureVideoPreviewLayer
+    var attachedStatus: PushUpCamera.Status?
 
-    init(preview: AVCaptureVideoPreviewLayer) {
-        self.preview = preview
-        super.init(frame: .zero)
+    override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+
+    var previewLayer: AVCaptureVideoPreviewLayer {
+        layer as! AVCaptureVideoPreviewLayer
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
         backgroundColor = .black
-        layer.addSublayer(preview)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        preview.frame = bounds
-        CATransaction.commit()
     }
 }

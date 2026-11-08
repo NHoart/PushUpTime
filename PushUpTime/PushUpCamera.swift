@@ -24,6 +24,8 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     @Published private(set) var count = 0
     @Published private(set) var phase: Phase = .searching
     @Published private(set) var status: Status = .idle
+    /// Aktueller Ellbogen-Winkel, falls eine Pose erkannt wurde.
+    @Published private(set) var poseAngle: Double?
 
     var target = 30
     var onCompleted: (() -> Void)?
@@ -54,6 +56,8 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     private var downSince: CFTimeInterval = 0
     private var lastRepAt: CFTimeInterval = 0
     private var phaseCache: Phase = .searching
+    private var publishedAngle: Double?
+    private var lastAnglePublish: CFTimeInterval = 0
 
     // Nur auf dem Main Thread benutzt.
     private var didComplete = false
@@ -110,12 +114,6 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
                 session.stopRunning()
             }
         }
-    }
-
-    func makePreviewLayer() -> AVCaptureVideoPreviewLayer {
-        let layer = AVCaptureVideoPreviewLayer(session: session)
-        layer.videoGravity = .resizeAspectFill
-        return layer
     }
 
     // MARK: - Session
@@ -282,11 +280,13 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
                 isDown = false
                 preferredSide = nil
                 publishPhase(.searching)
+                publishAngle(nil)
             }
             return
         }
 
         preferredSide = arm.side
+        publishAngle(arm.angle)
 
         let smoothed: Double
         if let previous = smoothedAngle, now - smoothedAt < 0.4 {
@@ -378,6 +378,9 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         lastRepAt = 0
         phaseCache = .searching
         publish { self.phase = .searching }
+        publishedAngle = nil
+        lastAnglePublish = 0
+        publish { self.poseAngle = nil }
     }
 
     // MARK: - Zählung (Main Thread)
@@ -395,6 +398,18 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         guard phaseCache != newPhase else { return }
         phaseCache = newPhase
         publish { self.phase = newPhase }
+    }
+
+    /// Meldet den Winkel gedrosselt an die Oberfläche, damit die Diagnosezeile
+    /// nicht bei jedem Frame neu zeichnet.
+    private func publishAngle(_ angle: Double?) {
+        let rounded = angle.map { ($0 * 10).rounded() / 10 }
+        guard rounded != publishedAngle else { return }
+        let now = CACurrentMediaTime()
+        if rounded != nil, now - lastAnglePublish < 0.2 { return }
+        publishedAngle = rounded
+        lastAnglePublish = now
+        publish { self.poseAngle = rounded }
     }
 
     private func publish(_ block: @escaping () -> Void) {
