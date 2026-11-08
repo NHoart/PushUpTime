@@ -13,6 +13,7 @@ struct RootView: View {
                 introSection
                 appsSection
                 challengeSection
+                statsSection
                 advancedSection
             }
             .listStyle(.insetGrouped)
@@ -142,6 +143,57 @@ struct RootView: View {
                 Label("Liegestütz-Zählung testen", systemImage: "camera.viewfinder")
             }
         }
+    }
+
+    private var statsSection: some View {
+        Section {
+            HStack {
+                Label("Heute erledigt", systemImage: "checkmark.circle")
+                Spacer()
+                Text("\(model.stats.todayCount)")
+                    .monospacedDigit()
+                    .foregroundStyle(model.stats.todayCount > 0 ? .green : .secondary)
+            }
+
+            HStack {
+                Label("Streak", systemImage: "flame")
+                Spacer()
+                Text(streakText)
+                    .monospacedDigit()
+                    .foregroundStyle(model.stats.streak > 0 ? .orange : .secondary)
+            }
+
+            if let last = model.stats.last {
+                HStack {
+                    Label("Letzte Einheit", systemImage: "clock.arrow.circlepath")
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(last.reps) Liegestütze")
+                            .monospacedDigit()
+                        Text(last.appName ?? last.shortLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if last.appName != nil {
+                            Text(last.shortLabel)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+            } else {
+                Text("Noch keine Challenge abgeschlossen.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Statistik")
+        } footer: {
+            Text("Der Streak zählt aufeinanderfolgende Tage mit mindestens einer abgeschlossenen Challenge. Testläufe zählen nicht mit.")
+        }
+    }
+
+    private var streakText: String {
+        model.stats.streak == 1 ? "1 Tag" : "\(model.stats.streak) Tage"
     }
 
     private var advancedSection: some View {

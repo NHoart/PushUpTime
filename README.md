@@ -46,6 +46,8 @@ wird nichts – die Disziplin bleibt bei dir.
   Wiederholungen (Ellbogen unten ≤ 105°, danach gestreckt ≥ 148°).
 - **Shortcut-Anleitung pro App:** Name, URL und Mitteilungstext zum Kopieren,
   inklusive „Jetzt testen“.
+- **Kleine Statistik:** wie viele Challenges heute erledigt wurden, Streak über
+  aufeinanderfolgende Tage und die letzte Einheit (Zeitpunkt, App, Anzahl).
 - **Bildschirmzeit-Sperren (optional):** Auswahl über den System-`FamilyActivityPicker`,
   eigenes Zeitbudget pro Sperre (Standard 10 Minuten), Sperrbildschirm aus der
   Shield-Erweiterung, mehrere Sperren parallel.

@@ -61,6 +61,7 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var entries: [BlockerEntry] = []
     @Published private(set) var shortcutRules: [ShortcutRule] = []
+    @Published private(set) var history: [ChallengeRecord] = []
     @Published var requiredReps: Int = 30 {
         didSet { SharedStore.requiredReps = requiredReps }
     }
@@ -71,6 +72,7 @@ final class AppModel: ObservableObject {
     init() {
         entries = SharedStore.loadEntries()
         shortcutRules = ShortcutRuleStore.load()
+        history = ChallengeLog.load()
         requiredReps = SharedStore.requiredReps
         updateAuthorizationState()
     }
@@ -116,6 +118,12 @@ final class AppModel: ObservableObject {
 
     func startTestChallenge() {
         challenge = ChallengeRequest(kind: .test)
+    }
+
+    // MARK: - Statistik
+
+    var stats: ChallengeStats {
+        ChallengeLog.summary(of: history)
     }
 
     // MARK: - Bildschirmzeit-Freigabe
@@ -253,5 +261,9 @@ final class AppModel: ObservableObject {
         if case .screenTime(let entry) = request.kind {
             startRound(entry)
         }
+
+        // Testläufe zählen nicht in die Statistik.
+        if case .test = request.kind { return }
+        history = ChallengeLog.record(reps: max(1, requiredReps), appName: request.title)
     }
 }
