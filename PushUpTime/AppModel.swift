@@ -136,6 +136,8 @@ final class AppModel: ObservableObject {
             auth = .denied
         case .notDetermined:
             auth = .notDetermined
+        case .approvedWithDataAccess:
+            auth = .approved
         @unknown default:
             auth = .unknown
         }
