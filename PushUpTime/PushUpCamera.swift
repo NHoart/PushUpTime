@@ -1,9 +1,10 @@
 import AVFoundation
 import Combine
 import Foundation
+import QuartzCore
 import Vision
 
-/// Zählt Liegestütze per Frontkamera (Vision-Body-Pose, Ellbogen-Winkel).
+/// Zählt Liegestütze per Kamera (Vision-Body-Pose, Ellbogen-Winkel).
 final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
     enum Status: Equatable {
@@ -31,15 +32,50 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
 
     private let sessionQueue = DispatchQueue(label: "pushuptime.camera.session")
     private let visionQueue = DispatchQueue(label: "pushuptime.camera.vision")
-    private let poseRequest = VNDetectHumanBodyPoseRequest()
+
+    // Winkel (Grad) am Ellbogen, bei denen „unten“ bzw. „oben“ erreicht ist.
+    private let downAngle: Double = 105
+    private let upAngle: Double = 148
+    private let minJointConfidence: Float = 0.2
 
     private var configured = false
+
+    // Nur auf visionQueue benutzt.
     private var running = false
-    private var smoothedAngle: Double?
-    private var isDown = false
-    private var lastRepDate = Date.distantPast
-    private var didComplete = false
     private var frameCounter = 0
+    /// Einmal gefundene Bild-Orientierung. Solange sie gut erkannt wird, wird
+    /// nicht mehr in alle Richtungen gesucht.
+    private var lockedOrientation: CGImagePropertyOrientation?
+    private var lostFrames = 0
+    private var preferredSide: Side?
+    private var smoothedAngle: Double?
+    private var smoothedAt: CFTimeInterval = 0
+    private var isDown = false
+    private var downSince: CFTimeInterval = 0
+    private var lastRepAt: CFTimeInterval = 0
+    private var phaseCache: Phase = .searching
+
+    // Nur auf dem Main Thread benutzt.
+    private var didComplete = false
+
+    private enum Side: CaseIterable {
+        case left
+        case right
+
+        typealias Joint = VNHumanBodyPoseObservation.JointName
+
+        var shoulder: Joint { self == .left ? .leftShoulder : .rightShoulder }
+        var elbow: Joint { self == .left ? .leftElbow : .rightElbow }
+        var wrist: Joint { self == .left ? .leftWrist : .rightWrist }
+    }
+
+    private struct ArmReading {
+        let side: Side
+        let angle: Double
+        let confidence: Float
+    }
+
+    private static let allOrientations: [CGImagePropertyOrientation] = [.up, .right, .down, .left]
 
     // MARK: - Lifecycle
 
@@ -65,7 +101,10 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     }
 
     func stop() {
-        running = false
+        visionQueue.async { [weak self] in
+            self?.running = false
+            self?.resetTracking()
+        }
         sessionQueue.async { [session] in
             if session.isRunning {
                 session.stopRunning()
@@ -88,10 +127,13 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
                 DispatchQueue.main.async { self.status = .noCamera }
                 return
             }
+            self.visionQueue.async {
+                self.resetTracking()
+                self.running = true
+            }
             if !self.session.isRunning {
                 self.session.startRunning()
             }
-            self.running = true
             DispatchQueue.main.async { self.status = .running }
         }
     }
@@ -108,7 +150,11 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         }
 
         session.beginConfiguration()
-        session.sessionPreset = .medium
+        // Höhere Auflösung als .medium: Ellbogen und Handgelenk werden damit
+        // auch aus etwas Entfernung sicher erkannt.
+        if session.canSetSessionPreset(.hd1280x720) {
+            session.sessionPreset = .hd1280x720
+        }
 
         guard session.canAddInput(input) else {
             session.commitConfiguration()
@@ -129,10 +175,8 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         }
         session.addOutput(output)
 
-        if let connection = output.connection(with: .video),
-           connection.isVideoRotationAngleSupported(90) {
-            connection.videoRotationAngle = 90
-        }
+        // Bewusst keine feste Rotation am Datenausgang: das iPhone liegt beim
+        // Training oft seitlich, deshalb ermittelt Vision die Orientierung selbst.
 
         session.commitConfiguration()
         configured = true
@@ -151,66 +195,164 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
-        do {
-            try handler.perform([poseRequest])
-        } catch {
-            return
+        var observation: VNHumanBodyPoseObservation?
+
+        if let locked = lockedOrientation {
+            observation = detect(pixelBuffer, orientation: locked)
+            if let observation, poseScore(observation) >= minJointConfidence {
+                lostFrames = 0
+            } else {
+                observation = nil
+                lostFrames += 1
+                // Handy wurde gedreht oder verdeckt: Orientierung neu bestimmen.
+                if lostFrames >= 10 {
+                    lockedOrientation = nil
+                    lostFrames = 0
+                }
+            }
         }
 
-        let observation = poseRequest.results?.first as? VNHumanBodyPoseObservation
+        if observation == nil {
+            if let found = probe(pixelBuffer) {
+                observation = found.0
+                lockedOrientation = found.1
+                lostFrames = 0
+            }
+        }
+
         handlePose(observation)
     }
 
+    /// Probiert alle vier Bild-Orientierungen und nimmt das beste Ergebnis.
+    private func probe(_ pixelBuffer: CVPixelBuffer) -> (VNHumanBodyPoseObservation, CGImagePropertyOrientation)? {
+        var bestObservation: VNHumanBodyPoseObservation?
+        var bestOrientation: CGImagePropertyOrientation = .up
+        var bestScore: Float = 0
+
+        for orientation in Self.allOrientations {
+            guard let observation = detect(pixelBuffer, orientation: orientation) else { continue }
+            let score = poseScore(observation)
+            if score > bestScore {
+                bestScore = score
+                bestObservation = observation
+                bestOrientation = orientation
+            }
+        }
+
+        guard let bestObservation, bestScore >= 0.3 else { return nil }
+        return (bestObservation, bestOrientation)
+    }
+
+    private func detect(_ pixelBuffer: CVPixelBuffer,
+                        orientation: CGImagePropertyOrientation) -> VNHumanBodyPoseObservation? {
+        // Pro Durchlauf ein eigener Request: derselbe Request darf nicht
+        // gleichzeitig für mehrere Handler laufen.
+        let request = VNDetectHumanBodyPoseRequest()
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
+        do {
+            try handler.perform([request])
+        } catch {
+            return nil
+        }
+        return request.results?.first
+    }
+
+    /// Wie gut ist ein Arm dieser Pose zu sehen?
+    private func poseScore(_ observation: VNHumanBodyPoseObservation) -> Float {
+        var best: Float = 0
+        for side in Side.allCases {
+            guard let shoulder = try? observation.recognizedPoint(side.shoulder),
+                  let elbow = try? observation.recognizedPoint(side.elbow),
+                  let wrist = try? observation.recognizedPoint(side.wrist) else { continue }
+            let score = min(shoulder.confidence, min(elbow.confidence, wrist.confidence))
+            best = max(best, score)
+        }
+        return best
+    }
+
+    // MARK: - Zählen
+
     private func handlePose(_ observation: VNHumanBodyPoseObservation?) {
-        guard let observation, let (rawAngle, _) = bestArmAngle(observation) else {
-            smoothedAngle = nil
-            isDown = false
-            publish { self.phase = .searching }
+        let now = CACurrentMediaTime()
+
+        guard let observation, let arm = bestArm(observation) else {
+            // Kurze Aussetzer überbrücken, statt den Satz zu verlieren.
+            if smoothedAngle == nil || now - smoothedAt > 0.8 {
+                smoothedAngle = nil
+                isDown = false
+                preferredSide = nil
+                publishPhase(.searching)
+            }
             return
         }
 
-        let smoothed = smoothedAngle.map { $0 * 0.55 + rawAngle * 0.45 } ?? rawAngle
-        smoothedAngle = smoothed
+        preferredSide = arm.side
 
-        if smoothed <= 105 {
-            isDown = true
-            publish { self.phase = .down }
-        } else if smoothed >= 148 {
-            var counted = false
-            if isDown, Date().timeIntervalSince(lastRepDate) > 0.35 {
-                isDown = false
-                lastRepDate = Date()
-                counted = true
+        let smoothed: Double
+        if let previous = smoothedAngle, now - smoothedAt < 0.4 {
+            smoothed = previous * 0.6 + arm.angle * 0.4
+        } else {
+            smoothed = arm.angle
+        }
+        smoothedAngle = smoothed
+        smoothedAt = now
+
+        if smoothed <= downAngle {
+            if !isDown {
+                isDown = true
+                downSince = now
             }
-            publish {
-                self.phase = .up
-                if counted { self.registerRep() }
-            }
+            publishPhase(.down)
+            return
+        }
+
+        guard smoothed >= upAngle else {
+            // Zwischen den Schwellen: Zustand halten (Hysterese).
+            return
+        }
+
+        guard isDown else {
+            publishPhase(.up)
+            return
+        }
+
+        guard now - downSince > 0.25, now - lastRepAt > 0.45 else { return }
+
+        isDown = false
+        lastRepAt = now
+        phaseCache = .up
+        publish {
+            self.phase = .up
+            self.registerRep()
         }
     }
 
-    private func bestArmAngle(_ observation: VNHumanBodyPoseObservation) -> (Double, Float)? {
-        typealias Joint = VNHumanBodyPoseObservation.JointName
-        let arms: [(Joint, Joint, Joint)] = [
-            (.rightShoulder, .rightElbow, .rightWrist),
-            (.leftShoulder, .leftElbow, .leftWrist)
-        ]
+    private func bestArm(_ observation: VNHumanBodyPoseObservation) -> ArmReading? {
+        var readings: [ArmReading] = []
 
-        var best: (Double, Float)?
-        for arm in arms {
-            guard let shoulder = try? observation.recognizedPoint(arm.0),
-                  let elbow = try? observation.recognizedPoint(arm.1),
-                  let wrist = try? observation.recognizedPoint(arm.2) else { continue }
+        for side in Side.allCases {
+            guard let shoulder = try? observation.recognizedPoint(side.shoulder),
+                  let elbow = try? observation.recognizedPoint(side.elbow),
+                  let wrist = try? observation.recognizedPoint(side.wrist) else { continue }
+
             let confidence = min(shoulder.confidence, min(elbow.confidence, wrist.confidence))
-            guard confidence > 0.25 else { continue }
-            let value = elbowAngle(shoulder.location, elbow.location, wrist.location)
-            guard value.isFinite else { continue }
-            if best == nil || confidence > best!.1 {
-                best = (value, confidence)
-            }
+            guard confidence >= minJointConfidence else { continue }
+
+            let angle = elbowAngle(shoulder.location, elbow.location, wrist.location)
+            guard angle.isFinite else { continue }
+
+            readings.append(ArmReading(side: side, angle: angle, confidence: confidence))
         }
-        return best
+
+        // Einmal gewählter Arm bleibt aktiv, damit der Winkel nicht zwischen
+        // links und rechts hin und her springt.
+        if let preferred = preferredSide,
+           let match = readings.first(where: { $0.side == preferred }),
+           match.confidence >= 0.35 {
+            return match
+        }
+
+        return readings.max(by: { $0.confidence < $1.confidence })
     }
 
     private func elbowAngle(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint) -> Double {
@@ -224,7 +366,21 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         return acos(cosine) * 180.0 / .pi
     }
 
-    // MARK: - Counting (Main Thread)
+    private func resetTracking() {
+        frameCounter = 0
+        lockedOrientation = nil
+        lostFrames = 0
+        preferredSide = nil
+        smoothedAngle = nil
+        smoothedAt = 0
+        isDown = false
+        downSince = 0
+        lastRepAt = 0
+        phaseCache = .searching
+        publish { self.phase = .searching }
+    }
+
+    // MARK: - Zählung (Main Thread)
 
     private func registerRep() {
         guard !didComplete else { return }
@@ -233,6 +389,12 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
             didComplete = true
             onCompleted?()
         }
+    }
+
+    private func publishPhase(_ newPhase: Phase) {
+        guard phaseCache != newPhase else { return }
+        phaseCache = newPhase
+        publish { self.phase = newPhase }
     }
 
     private func publish(_ block: @escaping () -> Void) {
