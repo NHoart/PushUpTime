@@ -28,6 +28,28 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Stepper(
+                        value: Binding(
+                            get: { model.bypassMinutes },
+                            set: { model.bypassMinutes = $0 }
+                        ),
+                        in: 1...180
+                    ) {
+                        HStack {
+                            Text("Freigabe nach „Überspringen“")
+                            Spacer()
+                            Text("\(model.bypassMinutes) Min")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Überspringen")
+                } footer: {
+                    Text("So lange löst dieselbe App nach dem Überspringen keine neue Challenge aus.")
+                }
+
+                Section {
                     HStack {
                         Text("Bildschirmzeit")
                         Spacer()

@@ -65,6 +65,10 @@ final class AppModel: ObservableObject {
     @Published var requiredReps: Int = 30 {
         didSet { SharedStore.requiredReps = requiredReps }
     }
+    /// Wie viele Minuten eine übersprungene App freibleibt.
+    @Published var bypassMinutes: Int = 10 {
+        didSet { SharedStore.bypassMinutes = bypassMinutes }
+    }
     @Published private(set) var auth: AuthState = .unknown
     @Published var challenge: ChallengeRequest?
     @Published var errorMessage: String?
@@ -74,6 +78,7 @@ final class AppModel: ObservableObject {
         shortcutRules = ShortcutRuleStore.load()
         history = ChallengeLog.load()
         requiredReps = SharedStore.requiredReps
+        bypassMinutes = SharedStore.bypassMinutes
         updateAuthorizationState()
     }
 
@@ -268,9 +273,6 @@ final class AppModel: ObservableObject {
 
     // MARK: - Freigabe nach dem Überspringen
 
-    /// So lange löst ein übersprungener App-Aufruf keine neue Challenge aus.
-    private static let bypassDuration: TimeInterval = 10 * 60
-
     private func bypassKey(forAppNamed name: String) -> String {
         "shortcutBypassUntil." + name.lowercased()
     }
@@ -283,7 +285,7 @@ final class AppModel: ObservableObject {
     }
 
     private func grantBypass(forAppNamed name: String) {
-        let until = Date().addingTimeInterval(Self.bypassDuration)
+        let until = Date().addingTimeInterval(TimeInterval(max(1, bypassMinutes) * 60))
         SharedConfig.defaults.set(until.timeIntervalSince1970, forKey: bypassKey(forAppNamed: name))
     }
 

@@ -99,7 +99,8 @@ App-ID beginnen (`<app-id>.monitor`, `<app-id>.shield`).
 - Die Sperre ist Selbstkontrolle: iOS erlaubt es nicht, sie unumgehbar zu machen.
 - Notaus in der Challenge: „Notaus“ 3 Sekunden halten entsperrt die App.
 - „Überspringen“ auf dem Challenge-Screen schließt sie ohne Zählung; dieselbe App
-  löst danach 10 Minuten keine Challenge aus.
+  löst danach keine Challenge mehr aus – wie lange, steht in den Einstellungen
+  unter „Überspringen“ (Standard 10 Minuten).
 - Automatisch zurück in die App springen geht nicht: Für Shortcuts ist jedes Öffnen
   per URL ein neues „App ist geöffnet“ und holt PushUpTime sofort wieder nach vorn.
   Zurück geht es per App-Umschalter (ein Wechsel zurück ist kein neues Öffnen).

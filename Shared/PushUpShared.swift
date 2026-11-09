@@ -9,6 +9,7 @@ enum SharedConfig {
     static let appGroupID = "group.com.noahh.pushuptime.9c31f7"
     static let entriesKey = "blockers.v1"
     static let repsKey = "requiredReps.v1"
+    static let bypassKey = "shortcutBypassMinutes.v1"
     static let activityPrefix = "round."
 
     static var defaults: UserDefaults {
@@ -98,6 +99,15 @@ enum SharedStore {
             return stored == 0 ? 30 : stored
         }
         set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.repsKey) }
+    }
+
+    /// Minuten, die eine übersprungene App freibleibt (Standard 10).
+    static var bypassMinutes: Int {
+        get {
+            let stored = SharedConfig.defaults.integer(forKey: SharedConfig.bypassKey)
+            return stored == 0 ? 10 : stored
+        }
+        set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.bypassKey) }
     }
 }
 
