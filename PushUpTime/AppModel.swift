@@ -3,6 +3,12 @@ import FamilyControls
 import Foundation
 import ManagedSettings
 
+/// Ziel für den Rücksprung nach einer erledigten Challenge.
+struct ReturnTicket {
+    let appName: String
+    let url: URL
+}
+
 /// Zentraler Zustand der App: Shortcut-Regeln, optionale Bildschirmzeit-Sperren
 /// und die laufende Challenge.
 @MainActor
@@ -73,6 +79,8 @@ final class AppModel: ObservableObject {
     @Published var challenge: ChallengeRequest?
     @Published var errorMessage: String?
 
+    private var challengeObserver: AnyCancellable?
+
     init() {
         entries = SharedStore.loadEntries()
         shortcutRules = ShortcutRuleStore.load()
@@ -80,6 +88,16 @@ final class AppModel: ObservableObject {
         requiredReps = SharedStore.requiredReps
         bypassMinutes = SharedStore.bypassMinutes
         updateAuthorizationState()
+
+        // Der Shortcuts-Intent läuft im selben Prozess und meldet sich hier,
+        // sobald die App im Vordergrund ist.
+        challengeObserver = NotificationCenter.default
+            .publisher(for: .pushUpTimeChallengeRequested)
+            .sink { _ in
+                Task { @MainActor [weak self] in
+                    self?.consumePendingChallenge()
+                }
+            }
     }
 
     // MARK: - Shortcuts-Modus (ohne Bildschirmzeit)
@@ -92,7 +110,10 @@ final class AppModel: ObservableObject {
         let exists = all.contains { $0.appName.localizedCaseInsensitiveCompare(clean) == .orderedSame }
         guard !exists else { return }
 
-        all.append(ShortcutRule(appName: clean))
+        all.append(ShortcutRule(
+            appName: clean,
+            returnURLString: ShortcutRule.suggestedReturnURLString(for: clean)
+        ))
         ShortcutRuleStore.save(all)
         shortcutRules = all
     }
@@ -102,6 +123,22 @@ final class AppModel: ObservableObject {
         all.removeAll { $0.id == rule.id }
         ShortcutRuleStore.save(all)
         shortcutRules = all
+    }
+
+    /// Legt fest, wohin PushUpTime nach der Challenge zurückspringt.
+    func setReturnURL(_ raw: String, for rule: ShortcutRule) {
+        let clean = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var all = ShortcutRuleStore.load()
+        guard let index = all.firstIndex(where: { $0.id == rule.id }) else { return }
+        all[index].returnURLString = clean.isEmpty ? nil : clean
+        ShortcutRuleStore.save(all)
+        shortcutRules = all
+    }
+
+    func returnURL(forAppNamed name: String) -> URL? {
+        shortcutRules
+            .first { $0.appName.caseInsensitiveCompare(name) == .orderedSame }?
+            .returnURL
     }
 
     /// Wird beim Öffnen der App über `pushuptime://challenge[?app=Name]` aufgerufen.
@@ -119,14 +156,30 @@ final class AppModel: ObservableObject {
 
         let appName = (rawName?.isEmpty ?? true) ? nil : rawName
 
-        // Frisch übersprungen: Die Automatisierung hat uns nur wieder hergeholt,
-        // weil die App geöffnet wurde – dann keine neue Challenge zeigen.
-        if let appName, let until = bypassUntil(forAppNamed: appName), until > Date() {
-            challenge = nil
-            return
+        // Frisch übersprungen oder gerade zurückgesprungen: Die Automatisierung
+        // hat uns nur wieder hergeholt, weil die App geöffnet wurde – dann keine
+        // neue Challenge zeigen.
+        if let appName {
+            if LaunchPass.consume(for: appName) {
+                challenge = nil
+                return
+            }
+            if ShortcutBypass.isActive(for: appName) {
+                challenge = nil
+                return
+            }
         }
 
         challenge = ChallengeRequest(kind: .shortcut(appName))
+    }
+
+    /// Übernimmt eine Challenge, die der Shortcuts-Intent im Hintergrund
+    /// vorbereitet hat – auch nach einem Kaltstart.
+    func consumePendingChallenge() {
+        guard challenge == nil else { return }
+        guard let pending = PendingChallenge.take() else { return }
+        if let name = pending.appName, ShortcutBypass.isActive(for: name) { return }
+        challenge = ChallengeRequest(kind: .shortcut(pending.appName))
     }
 
     func startTestChallenge() {
@@ -259,34 +312,31 @@ final class AppModel: ObservableObject {
         challenge = ChallengeRequest(kind: .screenTime(entry))
     }
 
-    /// Beendet die Challenge, ohne Liegestütze zu zählen, und gibt die App für eine
-    /// Weile frei. Sie wird bewusst nicht automatisch geöffnet: Für die
-    /// Shortcuts-Automatisierung ist jedes Öffnen per URL ein neues „App ist
-    /// geöffnet“ und holt PushUpTime sofort wieder nach vorn – eine Endlosschleife.
-    func skipChallenge() {
-        guard let request = challenge else { return }
+    /// Beendet die Challenge ohne Zählung und gibt die App für eine Weile frei.
+    /// Gibt es einen Rücksprung-Link, wird der Weg zurück vorbereitet.
+    @discardableResult
+    func skipChallenge() -> ReturnTicket? {
+        guard let request = challenge else { return nil }
         challenge = nil
 
-        guard case .shortcut(let name?) = request.kind else { return }
-        grantBypass(forAppNamed: name)
+        guard case .shortcut(.some(let name)) = request.kind else { return nil }
+        ShortcutBypass.grant(for: name, minutes: bypassMinutes)
+        return ticket(forAppNamed: name)
     }
 
     // MARK: - Freigabe nach dem Überspringen
 
-    private func bypassKey(forAppNamed name: String) -> String {
-        "shortcutBypassUntil." + name.lowercased()
-    }
-
     /// Bis wann für diese App keine Challenge mehr kommt (`nil` = nie übersprungen).
     func bypassUntil(forAppNamed name: String) -> Date? {
-        let stored = SharedConfig.defaults.double(forKey: bypassKey(forAppNamed: name))
-        guard stored > 0 else { return nil }
-        return Date(timeIntervalSince1970: stored)
+        ShortcutBypass.until(for: name)
     }
 
-    private func grantBypass(forAppNamed name: String) {
-        let until = Date().addingTimeInterval(TimeInterval(max(1, bypassMinutes) * 60))
-        SharedConfig.defaults.set(until.timeIntervalSince1970, forKey: bypassKey(forAppNamed: name))
+    /// Bereitet den Rücksprung vor: Launch-Pass für die Automatisierung und
+    /// das Ziel, das die Challenge-Ansicht anschließend öffnet.
+    private func ticket(forAppNamed name: String) -> ReturnTicket? {
+        guard let url = returnURL(forAppNamed: name) else { return nil }
+        LaunchPass.grant(for: name)
+        return ReturnTicket(appName: name, url: url)
     }
 
     /// Gibt die aktuell gesperrte App frei und beendet die Challenge.
@@ -299,16 +349,26 @@ final class AppModel: ObservableObject {
         challenge = nil
     }
 
-    func completeChallenge() {
-        guard let request = challenge else { return }
+    /// Zählt die Challenge, gibt eine Bildschirmzeit-Sperre frei und liefert –
+    /// wenn ein Rücksprung-Link hinterlegt ist – das Ziel für den Rücksprung.
+    @discardableResult
+    func completeChallenge() -> ReturnTicket? {
+        guard let request = challenge else { return nil }
         challenge = nil
 
-        if case .screenTime(let entry) = request.kind {
+        var ticket: ReturnTicket?
+        switch request.kind {
+        case .screenTime(let entry):
             startRound(entry)
+        case .shortcut(.some(let name)):
+            ticket = self.ticket(forAppNamed: name)
+        case .shortcut(.none), .test:
+            break
         }
 
         // Testläufe zählen nicht in die Statistik.
-        if case .test = request.kind { return }
+        if case .test = request.kind { return ticket }
         history = ChallengeLog.record(reps: max(1, requiredReps), appName: request.title)
+        return ticket
     }
 }

@@ -66,6 +66,9 @@ struct RootView: View {
         } message: {
             Text("Danach legst du in der Shortcuts-App eine Automatisierung für genau diese App an. Die Schritte und den passenden Link bekommst du direkt daneben.")
         }
+        .onAppear {
+            model.consumePendingChallenge()
+        }
     }
 
     // MARK: - Sections

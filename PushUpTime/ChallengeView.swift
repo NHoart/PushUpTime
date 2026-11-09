@@ -7,11 +7,21 @@ struct ChallengeView: View {
     @EnvironmentObject private var model: AppModel
     @StateObject private var camera = PushUpCamera()
 
+    /// Die Challenge ist erledigt – die Bestätigung läuft, danach der Rücksprung.
+    @State private var finished = false
+
     /// Test, Shortcuts-Aufruf oder echte Bildschirmzeit-Sperre.
     let request: AppModel.ChallengeRequest
 
     private var reps: Int { max(1, model.requiredReps) }
     private var remaining: Int { max(0, reps - camera.count) }
+
+    /// Nur wenn ein Rücksprung-Link hinterlegt ist, wird auch gesprungen.
+    private var returnAppName: String? {
+        guard case .shortcut(.some(let name)) = request.kind,
+              model.returnURL(forAppNamed: name) != nil else { return nil }
+        return name
+    }
 
     var body: some View {
         ZStack {
@@ -68,6 +78,10 @@ struct ChallengeView: View {
                 footer
             }
             .padding(.vertical, 24)
+
+            if finished {
+                completionOverlay
+            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -83,6 +97,31 @@ struct ChallengeView: View {
     }
 
     // MARK: - Views
+
+    private var completionOverlay: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
+
+            Text("Geschafft")
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white)
+
+            if let name = returnAppName {
+                Text("Zurück zu \(name) …")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            } else {
+                Text(request.isBlocking ? "Sperre aufgehoben" : "Challenge beendet")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black.opacity(0.75))
+        .ignoresSafeArea()
+    }
 
     private var counter: some View {
         ZStack {
@@ -136,7 +175,7 @@ struct ChallengeView: View {
             // Ausweg aus der Meldung: schließt die Zählung ohne Liegestütze.
             if !request.isBlocking {
                 Button {
-                    model.skipChallenge()
+                    leave(ticket: model.skipChallenge())
                 } label: {
                     Text("Überspringen")
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -217,9 +256,32 @@ struct ChallengeView: View {
         }
     }
 
+    /// Zählung abgeschlossen: kurz bestätigen und dann zurück in die App.
     private func finish() {
-        model.completeChallenge()
+        guard !finished else { return }
+        finished = true
+        camera.stop()
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1100))
+            leave(ticket: model.completeChallenge())
+        }
+    }
+
+    /// Räumt die Challenge weg und springt – wenn möglich – in die Ziel-App.
+    private func leave(ticket: ReturnTicket?) {
         dismiss()
+        guard let ticket else { return }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            UIApplication.shared.open(ticket.url, options: [:]) { success in
+                guard !success else { return }
+                Task { @MainActor in
+                    model.errorMessage = "„\(ticket.appName)“ ließ sich nicht öffnen. Prüfe den Rücksprung-Link in der Anleitung."
+                }
+            }
+        }
     }
 }
 

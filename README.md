@@ -24,10 +24,11 @@ Shortcuts-App liegt und PushUpTime nur noch per URL-Schema gestartet wird.
 ## Benachrichtigungs-Modus einrichten
 
 1. In PushUpTime oben rechts auf „+“ tippen und die App eintragen (z. B. Instagram).
-2. Den Eintrag antippen – dort stehen die Schritte und der fertige Link.
+2. Den Eintrag antippen – dort stehen die Schritte, der Rücksprung-Link und die passende Aktion.
 3. In der Shortcuts-App: **Automatisierung → + → App → „Instagram“ → „Ist geöffnet“ → „Sofort ausführen“**.
-4. Aktion **„URL öffnen“** mit `pushuptime://challenge?app=Instagram` hinzufügen.
-   Damit springt PushUpTime auf und startet direkt die Zählung.
+4. Als Aktion **PushUpTime → „Liegestütze starten“** wählen und bei „App“ den
+   Eintrag aus PushUpTime auswählen. PushUpTime springt mit der Zählung auf und
+   schickt dich nach den Liegestützen automatisch zurück in die App (iOS 26+).
    Wer in der App bleiben will, nimmt stattdessen **„Mitteilung anzeigen“** mit
    dem Text „30 Liegestütze 💪“.
 
@@ -44,8 +45,11 @@ wird nichts – die Disziplin bleibt bei dir.
 
 - **Liegestütze zählen per Kamera:** Vision-Body-Pose erkennt echte
   Wiederholungen (Ellbogen unten ≤ 105°, danach gestreckt ≥ 148°).
-- **Shortcut-Anleitung pro App:** Name, URL und Mitteilungstext zum Kopieren,
-  inklusive „Jetzt testen“.
+- **Shortcut-Anleitung pro App:** Name, Aktion, Rücksprung-Link und
+  Mitteilungstext, inklusive Test.
+- **Rücksprung in die Ziel-App:** Nach den Liegestützen öffnet PushUpTime die App
+  über ihr URL-Schema (z. B. `instagram://`). Ein kurzer Launch-Pass sorgt dafür,
+  dass die Automatisierung dabei nicht sofort wieder PushUpTime nach vorn holt.
 - **Kleine Statistik:** wie viele Challenges heute erledigt wurden, Streak über
   aufeinanderfolgende Tage und die letzte Einheit (Zeitpunkt, App, Anzahl).
 - **Bildschirmzeit-Sperren (optional):** Auswahl über den System-`FamilyActivityPicker`,
@@ -101,9 +105,10 @@ App-ID beginnen (`<app-id>.monitor`, `<app-id>.shield`).
 - „Überspringen“ auf dem Challenge-Screen schließt sie ohne Zählung; dieselbe App
   löst danach keine Challenge mehr aus – wie lange, steht in den Einstellungen
   unter „Überspringen“ (Standard 10 Minuten).
-- Automatisch zurück in die App springen geht nicht: Für Shortcuts ist jedes Öffnen
-  per URL ein neues „App ist geöffnet“ und holt PushUpTime sofort wieder nach vorn.
-  Zurück geht es per App-Umschalter (ein Wechsel zurück ist kein neues Öffnen).
+- Der automatische Rücksprung braucht die Aktion **„Liegestütze starten“**
+  (App Intent, iOS 26+) und einen Rücksprung-Link pro App. Mit dem alten
+  „URL öffnen“ bleibt es beim App-Umschalter: Jedes Öffnen per URL ist ein neues
+  „App ist geöffnet“ und holt PushUpTime sofort wieder nach vorn.
 - Alternativ die Sperre in iOS-Einstellungen → Bildschirmzeit deaktivieren bzw.
   PushUpTime den Bildschirmzeit-Zugriff entziehen.
 - Kamera-Zählung braucht seitliches Ablegen des iPhones, sodass Schulter, Ellbogen
