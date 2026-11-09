@@ -93,7 +93,7 @@ struct ScreenTimeView: View {
         } header: {
             Text("Sperren")
         } footer: {
-            Text("Das Zeitbudget zählt die tatsächliche Nutzung der ausgewählten Apps. Ist es aufgebraucht, erscheint der Sperrbildschirm, bis du Liegestütze gemacht hast.")
+            Text("Das Zeitbudget zählt die tatsächliche Nutzung der ausgewählten Apps. Ist es aufgebraucht, erscheint der Sperrbildschirm, bis du die Challenge gemacht hast.")
         }
     }
 
@@ -149,7 +149,7 @@ struct ScreenTimeView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .accessibilityLabel("Liegestütze machen")
+                .accessibilityLabel("Challenge machen")
             }
         }
         .padding(.vertical, 4)

@@ -25,6 +25,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     private func makeConfiguration() -> ShieldConfiguration {
         let reps = SharedStore.requiredReps
+        let amount = "\(reps) \(SharedStore.exercise.unit(for: reps))"
         return ShieldConfiguration(
             backgroundBlurStyle: .systemUltraThinMaterialDark,
             backgroundColor: UIColor(red: 0.09, green: 0.07, blue: 0.08, alpha: 1.0),
@@ -34,7 +35,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 color: .white
             ),
             subtitle: ShieldConfiguration.Label(
-                text: "Öffne PushUpTime und mach \(reps) Liegestütze, um weiterzumachen.",
+                text: "Öffne PushUpTime und mach \(amount), um weiterzumachen.",
                 color: UIColor.white.withAlphaComponent(0.7)
             ),
             primaryButtonLabel: ShieldConfiguration.Label(

@@ -47,17 +47,6 @@ final class AppModel: ObservableObject {
             }
         }
 
-        var statusLabel: String {
-            switch kind {
-            case .test:
-                return "TESTLAUF"
-            case .shortcut:
-                return "ZEIT FÜR LIEGESTÜTZE"
-            case .screenTime:
-                return "GESPERRT"
-            }
-        }
-
         /// Nur bei einer echten Sperre gibt es etwas freizugeben.
         var isBlocking: Bool {
             if case .screenTime = kind { return true }
@@ -68,8 +57,15 @@ final class AppModel: ObservableObject {
     @Published private(set) var entries: [BlockerEntry] = []
     @Published private(set) var shortcutRules: [ShortcutRule] = []
     @Published private(set) var history: [ChallengeRecord] = []
-    @Published var requiredReps: Int = 30 {
-        didSet { SharedStore.requiredReps = requiredReps }
+    /// Welche Übung die nächste Challenge verlangt.
+    @Published var exercise: ExerciseKind = .pushUps {
+        didSet { SharedStore.exercise = exercise }
+    }
+    @Published var pushUpReps: Int = 30 {
+        didSet { SharedStore.setReps(pushUpReps, for: .pushUps) }
+    }
+    @Published var twistReps: Int = 220 {
+        didSet { SharedStore.setReps(twistReps, for: .russianTwists) }
     }
     /// Wie viele Minuten eine übersprungene App freibleibt.
     @Published var bypassMinutes: Int = 10 {
@@ -85,7 +81,9 @@ final class AppModel: ObservableObject {
         entries = SharedStore.loadEntries()
         shortcutRules = ShortcutRuleStore.load()
         history = ChallengeLog.load()
-        requiredReps = SharedStore.requiredReps
+        exercise = SharedStore.exercise
+        pushUpReps = SharedStore.reps(for: .pushUps)
+        twistReps = SharedStore.reps(for: .russianTwists)
         bypassMinutes = SharedStore.bypassMinutes
         updateAuthorizationState()
 
@@ -184,6 +182,21 @@ final class AppModel: ObservableObject {
 
     func startTestChallenge() {
         challenge = ChallengeRequest(kind: .test)
+    }
+
+    /// Anzahl für die gerade gewählte Übung.
+    var requiredReps: Int {
+        exercise == .pushUps ? pushUpReps : twistReps
+    }
+
+    /// Setzt die Anzahl der gerade gewählten Übung.
+    func setReps(_ value: Int) {
+        switch exercise {
+        case .pushUps:
+            pushUpReps = max(1, value)
+        case .russianTwists:
+            twistReps = max(1, value)
+        }
     }
 
     // MARK: - Statistik
@@ -368,7 +381,11 @@ final class AppModel: ObservableObject {
 
         // Testläufe zählen nicht in die Statistik.
         if case .test = request.kind { return ticket }
-        history = ChallengeLog.record(reps: max(1, requiredReps), appName: request.title)
+        history = ChallengeLog.record(
+            reps: max(1, requiredReps),
+            appName: request.title,
+            exercise: exercise
+        )
         return ticket
     }
 }

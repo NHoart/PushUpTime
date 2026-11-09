@@ -22,7 +22,8 @@ struct ShortcutGuideView: View {
     }
 
     private var notificationText: String {
-        "\(max(1, model.requiredReps)) Liegestütze 💪"
+        let reps = max(1, model.requiredReps)
+        return "\(reps) \(model.exercise.unit(for: reps)) 💪"
     }
 
     var body: some View {

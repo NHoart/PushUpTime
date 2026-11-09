@@ -4,8 +4,16 @@ import Foundation
 import QuartzCore
 import Vision
 
-/// Zählt Liegestütze per Kamera (Vision-Body-Pose, Ellbogen-Winkel).
+/// Zählt Wiederholungen per Kamera (Vision-Body-Pose).
+///
+/// - Liegestütze: Ellbogen-Winkel (unten ≤ 105°, danach gestreckt ≥ 148°).
+/// - Russian Twists: Hände wandern links und rechts am Körper vorbei.
 final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+
+    enum Mode: Equatable {
+        case pushUps
+        case russianTwists
+    }
 
     enum Status: Equatable {
         case idle
@@ -19,14 +27,21 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         case searching
         case down
         case up
+        /// Russian Twists: Hände in der Mitte, ein Twist zählt wieder.
+        case center
+        case left
+        case right
     }
 
     @Published private(set) var count = 0
     @Published private(set) var phase: Phase = .searching
     @Published private(set) var status: Status = .idle
-    /// Aktueller Ellbogen-Winkel, falls eine Pose erkannt wurde.
-    @Published private(set) var poseAngle: Double?
+    /// Aktueller Messwert: Ellbogen-Winkel in Grad bzw. Ausschlag der Hände in
+    /// Schulterbreiten, falls eine Pose erkannt wurde.
+    @Published private(set) var poseMetric: Double?
 
+    /// Muss vor `start()` gesetzt werden.
+    var mode: Mode = .pushUps
     var target = 30
     var onCompleted: (() -> Void)?
 
@@ -39,6 +54,8 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     private let downAngle: Double = 105
     private let upAngle: Double = 148
     private let minJointConfidence: Float = 0.2
+    /// Ab diesem Ausschlag (in Schulterbreiten) gilt ein Twist als ausgeführt.
+    private let twistThreshold: Double = 0.18
 
     private var configured = false
 
@@ -56,6 +73,10 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     private var downSince: CFTimeInterval = 0
     private var lastRepAt: CFTimeInterval = 0
     private var phaseCache: Phase = .searching
+    private var twistAmplitude: Double?
+    private var twistSeenAt: CFTimeInterval = 0
+    /// Erst nach der Mitte zählt der nächste Twist.
+    private var twistArmed = false
     private var publishedAngle: Double?
     private var lastAnglePublish: CFTimeInterval = 0
 
@@ -271,6 +292,15 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     // MARK: - Zählen
 
     private func handlePose(_ observation: VNHumanBodyPoseObservation?) {
+        switch mode {
+        case .pushUps:
+            handlePushUpPose(observation)
+        case .russianTwists:
+            handleTwistPose(observation)
+        }
+    }
+
+    private func handlePushUpPose(_ observation: VNHumanBodyPoseObservation?) {
         let now = CACurrentMediaTime()
 
         guard let observation, let arm = bestArm(observation) else {
@@ -327,6 +357,99 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         }
     }
 
+    // MARK: - Russian Twists
+
+    /// Ein Twist zählt, sobald die Hände deutlich neben dem Körper sind.
+    /// Zurück durch die Mitte lädt den nächsten Twist, damit jede Seite einmal zählt.
+    private func handleTwistPose(_ observation: VNHumanBodyPoseObservation?) {
+        let now = CACurrentMediaTime()
+
+        guard let observation, let amplitude = twistReading(observation) else {
+            // Kurze Aussetzer überbrücken, statt den Satz zu verlieren.
+            if twistAmplitude == nil || now - twistSeenAt > 0.8 {
+                twistAmplitude = nil
+                twistArmed = false
+                publishPhase(.searching)
+                publishAngle(nil)
+            }
+            return
+        }
+
+        twistAmplitude = amplitude
+        twistSeenAt = now
+        publishAngle(amplitude)
+
+        if abs(amplitude) < twistThreshold * 0.6 {
+            twistArmed = true
+            if now - lastRepAt > 0.35 {
+                publishPhase(.center)
+            }
+            return
+        }
+
+        guard abs(amplitude) >= twistThreshold, twistArmed, now - lastRepAt > 0.2 else { return }
+
+        twistArmed = false
+        lastRepAt = now
+        let phase: Phase = amplitude > 0 ? .right : .left
+        phaseCache = phase
+        publish {
+            self.phase = phase
+            self.registerRep()
+        }
+    }
+
+    /// Abstand der Hände vom Körpermittelpunkt in Schulterbreiten:
+    /// negativ = links, positiv = rechts.
+    private func twistReading(_ observation: VNHumanBodyPoseObservation) -> Double? {
+        guard let leftWrist = try? observation.recognizedPoint(.leftWrist),
+              let rightWrist = try? observation.recognizedPoint(.rightWrist),
+              leftWrist.confidence >= minJointConfidence,
+              rightWrist.confidence >= minJointConfidence,
+              let center = torsoCenter(observation),
+              let scale = shoulderWidth(observation),
+              scale > 0.03 else {
+            return nil
+        }
+
+        let hands = CGPoint(
+            x: (leftWrist.location.x + rightWrist.location.x) / 2,
+            y: (leftWrist.location.y + rightWrist.location.y) / 2
+        )
+        // Vision zählt von unten: Die Hände müssen über dem Becken liegen.
+        guard hands.y > center.y else { return nil }
+
+        return Double((hands.x - center.x) / scale)
+    }
+
+    /// Beckenmitte – ohne sichtbare Hüften notfalls die Körperwurzel.
+    private func torsoCenter(_ observation: VNHumanBodyPoseObservation) -> CGPoint? {
+        if let leftHip = try? observation.recognizedPoint(.leftHip),
+           let rightHip = try? observation.recognizedPoint(.rightHip),
+           leftHip.confidence >= minJointConfidence,
+           rightHip.confidence >= minJointConfidence {
+            return CGPoint(
+                x: (leftHip.location.x + rightHip.location.x) / 2,
+                y: (leftHip.location.y + rightHip.location.y) / 2
+            )
+        }
+        if let root = try? observation.recognizedPoint(.root),
+           root.confidence >= minJointConfidence {
+            return root.location
+        }
+        return nil
+    }
+
+    private func shoulderWidth(_ observation: VNHumanBodyPoseObservation) -> CGFloat? {
+        guard let left = try? observation.recognizedPoint(.leftShoulder),
+              let right = try? observation.recognizedPoint(.rightShoulder),
+              left.confidence >= minJointConfidence,
+              right.confidence >= minJointConfidence else {
+            return nil
+        }
+        return hypot(right.location.x - left.location.x, right.location.y - left.location.y)
+    }
+
     private func bestArm(_ observation: VNHumanBodyPoseObservation) -> ArmReading? {
         var readings: [ArmReading] = []
 
@@ -380,7 +503,10 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         publish { self.phase = .searching }
         publishedAngle = nil
         lastAnglePublish = 0
-        publish { self.poseAngle = nil }
+        twistAmplitude = nil
+        twistSeenAt = 0
+        twistArmed = false
+        publish { self.poseMetric = nil }
     }
 
     // MARK: - Zählung (Main Thread)
@@ -409,7 +535,7 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         if rounded != nil, now - lastAnglePublish < 0.2 { return }
         publishedAngle = rounded
         lastAnglePublish = now
-        publish { self.poseAngle = rounded }
+        publish { self.poseMetric = rounded }
     }
 
     private func publish(_ block: @escaping () -> Void) {

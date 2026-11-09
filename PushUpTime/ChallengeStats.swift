@@ -7,12 +7,26 @@ struct ChallengeRecord: Codable, Identifiable, Equatable {
     var reps: Int
     /// nil = Challenge ohne App-Namen (z. B. reiner Aufruf über den Shortcut).
     var appName: String?
+    /// nil bei alten Einträgen – die entstanden vor den Russian Twists.
+    var exercise: ExerciseKind?
 
-    init(id: UUID = UUID(), date: Date = Date(), reps: Int, appName: String? = nil) {
+    init(id: UUID = UUID(),
+         date: Date = Date(),
+         reps: Int,
+         appName: String? = nil,
+         exercise: ExerciseKind? = nil) {
         self.id = id
         self.date = date
         self.reps = reps
         self.appName = appName
+        self.exercise = exercise
+    }
+
+    var exerciseKind: ExerciseKind { exercise ?? .pushUps }
+
+    /// „30 Liegestütze“ / „220 Russian Twists“.
+    var amountLabel: String {
+        "\(reps) \(exerciseKind.unit(for: reps))"
     }
 
     /// „Heute, 12:04“ / „Gestern, 12:04“ / „03.11.2026, 12:04“ in Systemsprache.
@@ -46,9 +60,15 @@ enum ChallengeLog {
 
     /// Legt eine abgeschlossene Challenge ab und gibt den neuen Verlauf zurück.
     @discardableResult
-    static func record(reps: Int, appName: String?, date: Date = Date()) -> [ChallengeRecord] {
+    static func record(reps: Int,
+                       appName: String?,
+                       exercise: ExerciseKind,
+                       date: Date = Date()) -> [ChallengeRecord] {
         var all = load()
-        all.insert(ChallengeRecord(date: date, reps: reps, appName: appName), at: 0)
+        all.insert(
+            ChallengeRecord(date: date, reps: reps, appName: appName, exercise: exercise),
+            at: 0
+        )
         if all.count > limit {
             all.removeLast(all.count - limit)
         }

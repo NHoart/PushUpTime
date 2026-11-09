@@ -8,15 +8,25 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
+                    Picker("Übung", selection: Binding(
+                        get: { model.exercise },
+                        set: { model.exercise = $0 }
+                    )) {
+                        ForEach(ExerciseKind.allCases) { kind in
+                            Text(kind.title).tag(kind)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
                     Stepper(
                         value: Binding(
                             get: { model.requiredReps },
-                            set: { model.requiredReps = $0 }
+                            set: { model.setReps($0) }
                         ),
-                        in: 1...200
+                        in: 1...500
                     ) {
                         HStack {
-                            Text("Liegestütze pro Freigabe")
+                            Text("\(model.exercise.title) pro Freigabe")
                             Spacer()
                             Text("\(model.requiredReps)")
                                 .monospacedDigit()
@@ -25,6 +35,8 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Challenge")
+                } footer: {
+                    Text("Die gewählte Übung gilt für alle Challenges – Shortcut-Aufrufe und Bildschirmzeit-Sperren. Standard: 30 Liegestütze oder 220 Russian Twists.")
                 }
 
                 Section {

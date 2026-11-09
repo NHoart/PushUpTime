@@ -9,11 +9,71 @@ enum SharedConfig {
     static let appGroupID = "group.com.noahh.pushuptime.9c31f7"
     static let entriesKey = "blockers.v1"
     static let repsKey = "requiredReps.v1"
+    static let twistRepsKey = "requiredTwistReps.v1"
+    static let exerciseKey = "exerciseKind.v1"
     static let bypassKey = "shortcutBypassMinutes.v1"
     static let activityPrefix = "round."
 
     static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroupID) ?? .standard
+    }
+}
+
+/// Welche Übung eine Challenge verlangt.
+enum ExerciseKind: String, Codable, CaseIterable, Identifiable {
+    case pushUps
+    case russianTwists
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pushUps: return "Liegestütze"
+        case .russianTwists: return "Russian Twists"
+        }
+    }
+
+    /// Anzahl, die ohne eigene Einstellung gilt.
+    var defaultReps: Int {
+        switch self {
+        case .pushUps: return 30
+        case .russianTwists: return 220
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .pushUps: return "figure.strengthtraining.traditional"
+        case .russianTwists: return "figure.core.training"
+        }
+    }
+
+    /// Kopfzeile der Challenge.
+    var statusLabel: String {
+        switch self {
+        case .pushUps: return "ZEIT FÜR LIEGESTÜTZE"
+        case .russianTwists: return "ZEIT FÜR RUSSIAN TWISTS"
+        }
+    }
+
+    /// Einzahl/Mehrzahl für Anzeigen wie „220 Russian Twists“.
+    func unit(for count: Int) -> String {
+        switch self {
+        case .pushUps:
+            return count == 1 ? "Liegestütz" : "Liegestütze"
+        case .russianTwists:
+            return count == 1 ? "Russian Twist" : "Russian Twists"
+        }
+    }
+
+    /// Wie das iPhone für die Kamera-Zählung stehen soll.
+    var setupHint: String {
+        switch self {
+        case .pushUps:
+            return "iPhone seitlich ablegen, sodass Schulter, Ellbogen und Handgelenk sichtbar sind."
+        case .russianTwists:
+            return "iPhone vor dich stellen, sodass Schultern, Hände und Becken sichtbar sind."
+        }
     }
 }
 
@@ -93,12 +153,35 @@ enum SharedStore {
         save(entries)
     }
 
-    static var requiredReps: Int {
+    /// Aktuell gewählte Übung – gilt für Shortcut-Aufrufe und Sperren.
+    static var exercise: ExerciseKind {
         get {
-            let stored = SharedConfig.defaults.integer(forKey: SharedConfig.repsKey)
-            return stored == 0 ? 30 : stored
+            guard let raw = SharedConfig.defaults.string(forKey: SharedConfig.exerciseKey),
+                  let kind = ExerciseKind(rawValue: raw) else {
+                return .pushUps
+            }
+            return kind
         }
-        set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.repsKey) }
+        set { SharedConfig.defaults.set(newValue.rawValue, forKey: SharedConfig.exerciseKey) }
+    }
+
+    static func reps(for kind: ExerciseKind) -> Int {
+        let stored = SharedConfig.defaults.integer(forKey: key(for: kind))
+        return stored == 0 ? kind.defaultReps : max(1, stored)
+    }
+
+    static func setReps(_ value: Int, for kind: ExerciseKind) {
+        SharedConfig.defaults.set(max(1, value), forKey: key(for: kind))
+    }
+
+    /// Anzahl für die aktuell gewählte Übung (z. B. für den Sperrbildschirm).
+    static var requiredReps: Int { reps(for: exercise) }
+
+    private static func key(for kind: ExerciseKind) -> String {
+        switch kind {
+        case .pushUps: return SharedConfig.repsKey
+        case .russianTwists: return SharedConfig.twistRepsKey
+        }
     }
 
     /// Minuten, die eine übersprungene App freibleibt (Standard 10, 0 = keine Freigabe).

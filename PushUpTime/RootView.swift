@@ -132,8 +132,18 @@ struct RootView: View {
 
     private var challengeSection: some View {
         Section("Challenge") {
+            Picker("Übung", selection: Binding(
+                get: { model.exercise },
+                set: { model.exercise = $0 }
+            )) {
+                ForEach(ExerciseKind.allCases) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+
             HStack {
-                Label("Liegestütze", systemImage: "figure.strengthtraining.traditional")
+                Label(model.exercise.title, systemImage: model.exercise.icon)
                 Spacer()
                 Text("\(model.requiredReps)")
                     .monospacedDigit()
@@ -143,7 +153,7 @@ struct RootView: View {
             Button {
                 model.startTestChallenge()
             } label: {
-                Label("Liegestütz-Zählung testen", systemImage: "camera.viewfinder")
+                Label("\(model.exercise.title) zählen testen", systemImage: "camera.viewfinder")
             }
         }
     }
@@ -171,7 +181,7 @@ struct RootView: View {
                     Label("Letzte Einheit", systemImage: "clock.arrow.circlepath")
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(last.reps) Liegestütze")
+                        Text(last.amountLabel)
                             .monospacedDigit()
                         Text(last.appName ?? last.shortLabel)
                             .font(.caption)

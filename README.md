@@ -43,8 +43,13 @@ wird nichts – die Disziplin bleibt bei dir.
 
 ## Funktionen
 
-- **Liegestütze zählen per Kamera:** Vision-Body-Pose erkennt echte
-  Wiederholungen (Ellbogen unten ≤ 105°, danach gestreckt ≥ 148°).
+- **Übung wählen:** Liegestütze (Standard 30) oder Russian Twists (Standard
+  220) – die Auswahl gilt für Shortcut-Aufrufe und Bildschirmzeit-Sperren, die
+  Anzahl lässt sich pro Übung einstellen.
+- **Wiederholungen zählen per Kamera:** Vision-Body-Pose erkennt echte
+  Liegestütze (Ellbogen unten ≤ 105°, danach gestreckt ≥ 148°) und zählt bei
+  Russian Twists jeden Twist zur Seite, sobald die Hände seitlich am Becken
+  vorbeigehen.
 - **Shortcut-Anleitung pro App:** Name, Aktion, Rücksprung-Link und
   Mitteilungstext, inklusive Test.
 - **Rücksprung in die Ziel-App:** Nach den Liegestützen öffnet PushUpTime die App

@@ -13,8 +13,17 @@ struct ChallengeView: View {
     /// Test, Shortcuts-Aufruf oder echte Bildschirmzeit-Sperre.
     let request: AppModel.ChallengeRequest
 
+    private var exercise: ExerciseKind { model.exercise }
     private var reps: Int { max(1, model.requiredReps) }
     private var remaining: Int { max(0, reps - camera.count) }
+
+    private var statusLabel: String {
+        switch request.kind {
+        case .test: return "TESTLAUF"
+        case .shortcut: return exercise.statusLabel
+        case .screenTime: return "GESPERRT"
+        }
+    }
 
     /// Nur wenn ein Rücksprung-Link hinterlegt ist, wird auch gesprungen.
     private var returnAppName: String? {
@@ -41,7 +50,7 @@ struct ChallengeView: View {
                 Spacer(minLength: 12)
 
                 VStack(spacing: 8) {
-                    Text(request.statusLabel)
+                    Text(statusLabel)
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                         .tracking(4)
                         .foregroundStyle(.white.opacity(0.6))
@@ -85,6 +94,7 @@ struct ChallengeView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
+            camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
             camera.target = reps
             camera.onCompleted = {
                 finish()
@@ -153,7 +163,7 @@ struct ChallengeView: View {
     private var cameraProblem: some View {
         VStack(spacing: 10) {
             Text(camera.status == .denied
-                 ? "Kamera-Zugriff nötig, um Liegestütze zu zählen."
+                 ? "Kamera-Zugriff nötig, um die Wiederholungen zu zählen."
                  : "Keine Kamera gefunden.")
                 .font(.callout)
                 .multilineTextAlignment(.center)
@@ -172,7 +182,7 @@ struct ChallengeView: View {
 
     private var footer: some View {
         VStack(spacing: 12) {
-            // Ausweg aus der Meldung: schließt die Zählung ohne Liegestütze.
+            // Ausweg aus der Meldung: schließt die Zählung ohne Wiederholungen.
             if !request.isBlocking {
                 Button {
                     leave(ticket: model.skipChallenge())
@@ -184,12 +194,12 @@ struct ChallengeView: View {
                         .padding(.vertical, 11)
                         .background(Capsule().fill(.white.opacity(0.14)))
                 }
-                .accessibilityHint("Beendet die Challenge, ohne Liegestütze zu zählen.")
+                .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen.")
             }
 
             HStack(spacing: 8) {
                 Image(systemName: "iphone.gen3")
-                Text("iPhone seitlich ablegen, sodass Schulter, Ellbogen und Handgelenk sichtbar sind.")
+                Text(exercise.setupHint)
             }
             .font(.caption2)
             .foregroundStyle(.white.opacity(0.45))
@@ -217,13 +227,19 @@ struct ChallengeView: View {
         case .noCamera:
             return "Keine Kamera verfügbar"
         case .idle, .requesting, .running:
-            switch camera.phase {
-            case .searching:
-                return "Geh in Position …"
-            case .down:
-                return "Tiefer! 💥"
-            case .up:
-                return "Hoch – zählt! ✅"
+            switch exercise {
+            case .pushUps:
+                switch camera.phase {
+                case .down: return "Tiefer! 💥"
+                case .up: return "Hoch – zählt! ✅"
+                case .searching, .center, .left, .right: return "Geh in Position …"
+                }
+            case .russianTwists:
+                switch camera.phase {
+                case .left, .right: return "Gezählt! ✅ Jetzt zur anderen Seite"
+                case .center: return "Weiter drehen …"
+                case .searching, .down, .up: return "Setz dich hin, Hände vor der Brust …"
+                }
             }
         }
     }
@@ -238,10 +254,18 @@ struct ChallengeView: View {
         case .noCamera:
             return "Kamera: nicht gefunden"
         case .running:
-            if let angle = camera.poseAngle {
-                return "Pose erkannt · Ellbogen \(Int(angle.rounded()))°"
+            switch exercise {
+            case .pushUps:
+                if let angle = camera.poseMetric {
+                    return "Pose erkannt · Ellbogen \(Int(angle.rounded()))°"
+                }
+                return "Kamera läuft · keine Pose im Bild"
+            case .russianTwists:
+                if let amplitude = camera.poseMetric {
+                    return "Hände erkannt · Ausschlag \(Int((abs(amplitude) * 100).rounded()))"
+                }
+                return "Kamera läuft · Hände oder Becken nicht im Bild"
             }
-            return "Kamera läuft · keine Pose im Bild"
         }
     }
 
@@ -249,9 +273,9 @@ struct ChallengeView: View {
         switch camera.phase {
         case .down:
             return Color(red: 1.0, green: 0.6, blue: 0.25)
-        case .up:
+        case .up, .left, .right:
             return Color(red: 0.45, green: 0.9, blue: 0.55)
-        case .searching:
+        case .searching, .center:
             return .white.opacity(0.6)
         }
     }
