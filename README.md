@@ -104,7 +104,7 @@ App-ID beginnen (`<app-id>.monitor`, `<app-id>.shield`).
 - Notaus in der Challenge: „Notaus“ 3 Sekunden halten entsperrt die App.
 - „Überspringen“ auf dem Challenge-Screen schließt sie ohne Zählung; dieselbe App
   löst danach keine Challenge mehr aus – wie lange, steht in den Einstellungen
-  unter „Überspringen“ (Standard 10 Minuten).
+  unter „Überspringen“ (Standard 10 Minuten, 0 = keine Freigabe).
 - Der automatische Rücksprung braucht die Aktion **„Liegestütze starten“**
   (App Intent, iOS 26+) und einen Rücksprung-Link pro App. Mit dem alten
   „URL öffnen“ bleibt es beim App-Umschalter: Jedes Öffnen per URL ist ein neues

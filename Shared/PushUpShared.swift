@@ -101,13 +101,13 @@ enum SharedStore {
         set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.repsKey) }
     }
 
-    /// Minuten, die eine übersprungene App freibleibt (Standard 10).
+    /// Minuten, die eine übersprungene App freibleibt (Standard 10, 0 = keine Freigabe).
     static var bypassMinutes: Int {
         get {
-            let stored = SharedConfig.defaults.integer(forKey: SharedConfig.bypassKey)
-            return stored == 0 ? 10 : stored
+            guard SharedConfig.defaults.object(forKey: SharedConfig.bypassKey) != nil else { return 10 }
+            return max(0, SharedConfig.defaults.integer(forKey: SharedConfig.bypassKey))
         }
-        set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.bypassKey) }
+        set { SharedConfig.defaults.set(max(0, newValue), forKey: SharedConfig.bypassKey) }
     }
 }
 
@@ -158,8 +158,14 @@ enum ShortcutBypass {
     }
 
     static func grant(for appName: String, minutes: Int) {
-        let until = Date().addingTimeInterval(TimeInterval(max(1, minutes) * 60))
-        SharedConfig.defaults.set(until.timeIntervalSince1970, forKey: prefix + appName.lowercased())
+        let key = prefix + appName.lowercased()
+        guard minutes > 0 else {
+            // 0 Minuten = keine Freigabe nach dem Überspringen.
+            SharedConfig.defaults.removeObject(forKey: key)
+            return
+        }
+        let until = Date().addingTimeInterval(TimeInterval(minutes * 60))
+        SharedConfig.defaults.set(until.timeIntervalSince1970, forKey: key)
     }
 }
 

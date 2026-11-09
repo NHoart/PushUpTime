@@ -33,12 +33,12 @@ struct SettingsView: View {
                             get: { model.bypassMinutes },
                             set: { model.bypassMinutes = $0 }
                         ),
-                        in: 1...180
+                        in: 0...180
                     ) {
                         HStack {
                             Text("Freigabe nach „Überspringen“")
                             Spacer()
-                            Text("\(model.bypassMinutes) Min")
+                            Text(model.bypassMinutes == 0 ? "keine" : "\(model.bypassMinutes) Min")
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
                         }
@@ -46,7 +46,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Überspringen")
                 } footer: {
-                    Text("So lange löst dieselbe App nach dem Überspringen keine neue Challenge aus.")
+                    Text("So lange löst dieselbe App nach dem Überspringen keine neue Challenge aus. Bei 0 Minuten ist die App sofort wieder gesperrt.")
                 }
 
                 Section {
