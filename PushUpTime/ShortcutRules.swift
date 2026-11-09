@@ -28,43 +28,6 @@ struct ShortcutRule: Codable, Identifiable, Equatable {
     }
 }
 
-/// Überspringen heißt: zurück in die App, die die Challenge ausgelöst hat.
-///
-/// iOS erlaubt es keiner App, eine andere über ihren Namen zu öffnen – das geht
-/// nur über deren URL-Schema. Deshalb kennt PushUpTime die gängigen Ablenkungs-Apps;
-/// bei unbekannten Namen bleibt es beim bloßen Schließen der Challenge.
-enum AppDeepLink {
-    /// App-Name (klein, ohne Leerzeichen) → URL-Schema, das die App öffnet.
-    private static let schemes: [String: String] = [
-        "instagram": "instagram://app",
-        "threads": "barcelona://",
-        "youtube": "youtube://",
-        "youtubemusic": "youtubemusic://",
-        "tiktok": "snssdk1128://",
-        "twitter": "twitter://",
-        "x": "twitter://",
-        "facebook": "fb://",
-        "snapchat": "snapchat://",
-        "reddit": "reddit://",
-        "netflix": "nflx://",
-        "twitch": "twitch://",
-        "discord": "discord://",
-        "pinterest": "pinterest://",
-        "linkedin": "linkedin://",
-        "whatsapp": "whatsapp://",
-        "telegram": "tg://",
-        "spotify": "spotify://"
-    ]
-
-    /// URL, die die App öffnet – `nil`, wenn der Name unbekannt ist.
-    static func url(forAppNamed name: String?) -> URL? {
-        guard let name else { return nil }
-        let key = name.lowercased().filter { !$0.isWhitespace }
-        guard let raw = schemes[key] else { return nil }
-        return URL(string: raw)
-    }
-}
-
 enum ShortcutRuleStore {
     private static let key = "shortcutRules.v1"
 
