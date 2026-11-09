@@ -114,6 +114,14 @@ final class AppModel: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let appName = (rawName?.isEmpty ?? true) ? nil : rawName
+
+        // Frisch übersprungen: Die Automatisierung hat uns nur wieder hergeholt,
+        // weil die App geöffnet wurde – dann keine neue Challenge zeigen.
+        if let appName, let until = bypassUntil(forAppNamed: appName), until > Date() {
+            challenge = nil
+            return
+        }
+
         challenge = ChallengeRequest(kind: .shortcut(appName))
     }
 
@@ -253,14 +261,39 @@ final class AppModel: ObservableObject {
         guard let request = challenge else { return }
         challenge = nil
 
-        guard case .shortcut(let name) = request.kind,
-              let target = AppDeepLink.url(forAppNamed: name) else { return }
+        guard case .shortcut(let name?) = request.kind else { return }
+        // Ohne Freigabe würde das Öffnen der App die Automatisierung erneut auslösen
+        // und die Challenge sofort wieder erscheinen.
+        grantBypass(forAppNamed: name)
+
+        guard let target = AppDeepLink.url(forAppNamed: name) else { return }
 
         // Erst die Challenge-Ansicht schließen lassen, dann die App öffnen.
         Task {
             try? await Task.sleep(for: .milliseconds(400))
             _ = await UIApplication.shared.open(target)
         }
+    }
+
+    // MARK: - Freigabe nach dem Überspringen
+
+    /// So lange löst ein übersprungener App-Aufruf keine neue Challenge aus.
+    private static let bypassDuration: TimeInterval = 10 * 60
+
+    private func bypassKey(forAppNamed name: String) -> String {
+        "shortcutBypassUntil." + name.lowercased()
+    }
+
+    /// Bis wann für diese App keine Challenge mehr kommt (`nil` = nie übersprungen).
+    func bypassUntil(forAppNamed name: String) -> Date? {
+        let stored = SharedConfig.defaults.double(forKey: bypassKey(forAppNamed: name))
+        guard stored > 0 else { return nil }
+        return Date(timeIntervalSince1970: stored)
+    }
+
+    private func grantBypass(forAppNamed name: String) {
+        let until = Date().addingTimeInterval(Self.bypassDuration)
+        SharedConfig.defaults.set(until.timeIntervalSince1970, forKey: bypassKey(forAppNamed: name))
     }
 
     /// Gibt die aktuell gesperrte App frei und beendet die Challenge.
