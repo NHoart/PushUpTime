@@ -8,13 +8,46 @@ struct RootView: View {
     @State private var showSettings = false
 
     var body: some View {
+        TabView {
+            homeTab
+                .tabItem {
+                    Label("Start", systemImage: "house.fill")
+                }
+
+            HistoryView()
+                .tabItem {
+                    Label("Verlauf", systemImage: "chart.bar.fill")
+                }
+        }
+        .fullScreenCover(item: $model.challenge) { request in
+            ChallengeView(request: request)
+                .environmentObject(model)
+        }
+        .alert(
+            "Hinweis",
+            isPresented: Binding(
+                get: { model.errorMessage != nil },
+                set: { if !$0 { model.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { model.errorMessage = nil }
+        } message: {
+            Text(model.errorMessage ?? "")
+        }
+        .onAppear {
+            model.consumePendingChallenge()
+        }
+    }
+
+    // MARK: - Start
+
+    private var homeTab: some View {
         NavigationStack {
             List {
                 introSection
                 appsSection
                 challengeSection
                 trackingSection
-                historySection
                 statsSection
                 advancedSection
             }
@@ -41,35 +74,17 @@ struct RootView: View {
                 SettingsView()
                     .environmentObject(model)
             }
-            .fullScreenCover(item: $model.challenge) { request in
-                ChallengeView(request: request)
-                    .environmentObject(model)
-            }
-            .alert(
-                "Hinweis",
-                isPresented: Binding(
-                    get: { model.errorMessage != nil },
-                    set: { if !$0 { model.errorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) { model.errorMessage = nil }
+            .alert("App hinzufügen", isPresented: $showAddRule) {
+                TextField("z. B. Instagram", text: $newRuleName)
+                    .textInputAutocapitalization(.words)
+                Button("Hinzufügen") {
+                    model.addShortcutRule(appName: newRuleName)
+                    newRuleName = ""
+                }
+                Button("Abbrechen", role: .cancel) { newRuleName = "" }
             } message: {
-                Text(model.errorMessage ?? "")
+                Text("Danach legst du in der Shortcuts-App eine Automatisierung für genau diese App an. Die Schritte und den passenden Link bekommst du direkt daneben.")
             }
-        }
-        .alert("App hinzufügen", isPresented: $showAddRule) {
-            TextField("z. B. Instagram", text: $newRuleName)
-                .textInputAutocapitalization(.words)
-            Button("Hinzufügen") {
-                model.addShortcutRule(appName: newRuleName)
-                newRuleName = ""
-            }
-            Button("Abbrechen", role: .cancel) { newRuleName = "" }
-        } message: {
-            Text("Danach legst du in der Shortcuts-App eine Automatisierung für genau diese App an. Die Schritte und den passenden Link bekommst du direkt daneben.")
-        }
-        .onAppear {
-            model.consumePendingChallenge()
         }
     }
 
@@ -184,43 +199,6 @@ struct RootView: View {
             Text("Training")
         } footer: {
             Text("Öffnet die Kamera-Zählung wie bei einer Challenge – nur ohne Sperre und ohne Ziel. Was du zählst, landet im Verlauf und in der Statistik.")
-        }
-    }
-
-    private var historySection: some View {
-        Section {
-            if model.history.isEmpty {
-                Text("Noch keine Einheit eingetragen.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(model.history.prefix(8)) { record in
-                    HStack(spacing: 12) {
-                        Image(systemName: record.exerciseKind.icon)
-                            .foregroundStyle(.secondary)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(record.amountLabel)
-                                .monospacedDigit()
-                            Text(record.appName ?? record.shortLabel)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            model.deleteRecord(record)
-                        } label: {
-                            Label("Löschen", systemImage: "trash")
-                        }
-                    }
-                }
-            }
-        } header: {
-            Text("Verlauf")
-        } footer: {
-            Text("Die letzten acht Einheiten. Zum Löschen nach links wischen.")
         }
     }
 

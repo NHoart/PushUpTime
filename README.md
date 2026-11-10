@@ -66,8 +66,10 @@ wird nichts – die Disziplin bleibt bei dir.
   Tages-Summen und Streak.
 - **Kleine Statistik:** wie viele Challenges heute erledigt wurden, Streak über
   aufeinanderfolgende Tage und die letzte Einheit (Zeitpunkt, App, Anzahl).
-- **Verlauf der letzten acht Einheiten:** Challenges und freie Trainings; zum
-  Löschen nach links wischen.
+- **Verlauf-Tab mit Monatsdiagramm:** Balkendiagramm der letzten 30 Tage,
+  umschaltbar zwischen Liegestützen und Russian Twists. Darunter Summe der 30
+  Tage, aktive Tage und bester Tag sowie alle Einheiten (Challenges und freie
+  Trainings); zum Löschen nach links wischen.
 - **Bildschirmzeit-Sperren (optional):** Auswahl über den System-`FamilyActivityPicker`,
   eigenes Zeitbudget pro Sperre (Standard 10 Minuten), Sperrbildschirm aus der
   Shield-Erweiterung, mehrere Sperren parallel.
