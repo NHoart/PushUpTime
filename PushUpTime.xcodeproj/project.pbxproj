@@ -20,7 +20,6 @@
 		00000000000000000000E00B /* ScreenTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D016 /* ScreenTimeView.swift */; };
 		00000000000000000000E00C /* ChallengeStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D017 /* ChallengeStats.swift */; };
 		00000000000000000000E00D /* ChallengeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D018 /* ChallengeIntent.swift */; };
-		00000000000000000000E00E /* TrackExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D019 /* TrackExerciseView.swift */; };
 		00000000000000000000E011 /* PushUpShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D007 /* PushUpShared.swift */; };
 		00000000000000000000E012 /* DeviceActivityMonitorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D008 /* DeviceActivityMonitorExtension.swift */; };
 		00000000000000000000E021 /* PushUpShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D007 /* PushUpShared.swift */; };
@@ -81,7 +80,6 @@
 		00000000000000000000D016 /* ScreenTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeView.swift; sourceTree = "<group>"; };
 		00000000000000000000D017 /* ChallengeStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeStats.swift; sourceTree = "<group>"; };
 		00000000000000000000D018 /* ChallengeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeIntent.swift; sourceTree = "<group>"; };
-		00000000000000000000D019 /* TrackExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackExerciseView.swift; sourceTree = "<group>"; };
 		00000000000000000000D011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00000000000000000000D012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00000000000000000000D013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -152,7 +150,6 @@
 				00000000000000000000D016 /* ScreenTimeView.swift */,
 				00000000000000000000D017 /* ChallengeStats.swift */,
 				00000000000000000000D018 /* ChallengeIntent.swift */,
-				00000000000000000000D019 /* TrackExerciseView.swift */,
 				00000000000000000000D031 /* Assets.xcassets */,
 				00000000000000000000D011 /* Info.plist */,
 				00000000000000000000D021 /* PushUpTime.entitlements */,
@@ -330,7 +327,6 @@
 				00000000000000000000E00B /* ScreenTimeView.swift in Sources */,
 				00000000000000000000E00C /* ChallengeStats.swift in Sources */,
 				00000000000000000000E00D /* ChallengeIntent.swift in Sources */,
-				00000000000000000000E00E /* TrackExerciseView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

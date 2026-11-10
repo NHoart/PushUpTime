@@ -20,9 +20,16 @@ struct ChallengeView: View {
     private var reps: Int { max(1, model.reps(for: exercise)) }
     private var remaining: Int { max(0, reps - camera.count) }
 
+    /// Freies Training: keine Sperre, kein Ziel – eingetragen wird, was gezählt wurde.
+    private var isFree: Bool {
+        if case .free = request.kind { return true }
+        return false
+    }
+
     private var statusLabel: String {
         switch request.kind {
         case .test: return "TESTLAUF"
+        case .free: return "FREIES TRAINING"
         case .shortcut: return exercise.statusLabel
         case .screenTime: return "GESPERRT"
         }
@@ -105,8 +112,11 @@ struct ChallengeView: View {
         .preferredColorScheme(.dark)
         .keepScreenAwake()
         .onAppear {
-            camera.onCompleted = {
-                finish()
+            // Freies Training hat kein Ziel – beendet wird über den Button.
+            if !isFree {
+                camera.onCompleted = {
+                    finish()
+                }
             }
             if chosenExercise != nil {
                 startCamera()
@@ -129,7 +139,7 @@ struct ChallengeView: View {
             Spacer(minLength: 12)
 
             VStack(spacing: 8) {
-                Text("DEINE CHALLENGE")
+                Text(isFree ? "FREIES TRAINING" : "DEINE CHALLENGE")
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .tracking(4)
                     .foregroundStyle(.white.opacity(0.6))
@@ -186,7 +196,19 @@ struct ChallengeView: View {
 
             Spacer()
 
-            if !request.isBlocking {
+            if isFree {
+                Button {
+                    model.challenge = nil
+                    dismiss()
+                } label: {
+                    Text("Abbrechen")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(.white.opacity(0.14)))
+                }
+            } else if !request.isBlocking {
                 Button {
                     leave(ticket: model.skipChallenge())
                 } label: {
@@ -242,14 +264,16 @@ struct ChallengeView: View {
         ZStack {
             Circle()
                 .stroke(.white.opacity(0.15), lineWidth: 12)
-            Circle()
-                .trim(from: 0, to: min(1, Double(camera.count) / Double(reps)))
-                .stroke(
-                    Color(red: 0.95, green: 0.3, blue: 0.3),
-                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.25), value: camera.count)
+            if !isFree {
+                Circle()
+                    .trim(from: 0, to: min(1, Double(camera.count) / Double(reps)))
+                    .stroke(
+                        Color(red: 0.95, green: 0.3, blue: 0.3),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 0.25), value: camera.count)
+            }
 
             VStack(spacing: 0) {
                 Text("\(camera.count)")
@@ -257,7 +281,7 @@ struct ChallengeView: View {
                     .foregroundStyle(.white)
                     .contentTransition(.numericText())
                     .animation(.snappy, value: camera.count)
-                Text("von \(reps)")
+                Text(isFree ? "Wiederholungen" : "von \(reps)")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -287,8 +311,32 @@ struct ChallengeView: View {
 
     private var footer: some View {
         VStack(spacing: 12) {
+            if isFree {
+                Button {
+                    leave(ticket: model.completeChallenge(reps: camera.count))
+                } label: {
+                    Text(camera.count > 0
+                         ? "\(camera.count) \(exercise.unit(for: camera.count)) eintragen"
+                         : "Eintragen")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 14)
+                        .background(Capsule().fill(Color(red: 0.45, green: 0.9, blue: 0.55)))
+                }
+                .disabled(camera.count == 0)
+                .opacity(camera.count == 0 ? 0.5 : 1)
+
+                Button("Abbrechen") {
+                    model.challenge = nil
+                    dismiss()
+                }
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.85))
+            }
+
             // Ausweg aus der Meldung: schließt die Zählung ohne Wiederholungen.
-            if !request.isBlocking {
+            if !request.isBlocking && !isFree {
                 Button {
                     leave(ticket: model.skipChallenge())
                 } label: {
@@ -386,6 +434,7 @@ struct ChallengeView: View {
     }
 
     private func amountLabel(for kind: ExerciseKind) -> String {
+        if isFree { return "Frei zählen, ohne Ziel" }
         let count = max(1, model.reps(for: kind))
         return "\(count) \(kind.unit(for: count))"
     }
@@ -398,7 +447,7 @@ struct ChallengeView: View {
 
     private func startCamera() {
         camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
-        camera.target = reps
+        camera.target = isFree ? .max : reps
         camera.start()
     }
 

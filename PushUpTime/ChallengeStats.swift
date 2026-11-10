@@ -1,13 +1,5 @@
 import Foundation
 
-/// Wie eine Einheit zustande gekommen ist.
-enum RecordSource: String, Codable {
-    /// Über die Challenge mit Kamera-Zählung.
-    case challenge
-    /// Von Hand eingetragen, z. B. beim Training ohne iPhone-Halterung.
-    case manual
-}
-
 /// Eine abgeschlossene Challenge – Grundlage für die kleine Statistik.
 struct ChallengeRecord: Codable, Identifiable, Equatable {
     var id: UUID
@@ -17,27 +9,20 @@ struct ChallengeRecord: Codable, Identifiable, Equatable {
     var appName: String?
     /// nil bei alten Einträgen – die entstanden vor den Russian Twists.
     var exercise: ExerciseKind?
-    /// nil bei alten Einträgen – die entstanden alle über die Challenge.
-    var source: RecordSource?
 
     init(id: UUID = UUID(),
          date: Date = Date(),
          reps: Int,
          appName: String? = nil,
-         exercise: ExerciseKind? = nil,
-         source: RecordSource? = nil) {
+         exercise: ExerciseKind? = nil) {
         self.id = id
         self.date = date
         self.reps = reps
         self.appName = appName
         self.exercise = exercise
-        self.source = source
     }
 
     var exerciseKind: ExerciseKind { exercise ?? .pushUps }
-
-    /// Von Hand eingetragen statt per Kamera gezählt.
-    var isManual: Bool { source == .manual }
 
     /// „30 Liegestütze“ / „220 Russian Twists“.
     var amountLabel: String {
@@ -78,13 +63,11 @@ enum ChallengeLog {
     static func record(reps: Int,
                        appName: String?,
                        exercise: ExerciseKind,
-                       date: Date = Date(),
-                       source: RecordSource = .challenge) -> [ChallengeRecord] {
+                       date: Date = Date()) -> [ChallengeRecord] {
         var all = load()
         all.append(
-            ChallengeRecord(date: date, reps: reps, appName: appName, exercise: exercise, source: source)
+            ChallengeRecord(date: date, reps: reps, appName: appName, exercise: exercise)
         )
-        // Nachträglich eingetragene Einheiten können älter sein – daher sortieren.
         all.sort { $0.date > $1.date }
         if all.count > limit {
             all.removeLast(all.count - limit)

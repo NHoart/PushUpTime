@@ -6,7 +6,6 @@ struct RootView: View {
     @State private var showAddRule = false
     @State private var newRuleName = ""
     @State private var showSettings = false
-    @State private var showTrackExercise = false
 
     var body: some View {
         NavigationStack {
@@ -40,10 +39,6 @@ struct RootView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
-                    .environmentObject(model)
-            }
-            .sheet(isPresented: $showTrackExercise) {
-                TrackExerciseView()
                     .environmentObject(model)
             }
             .fullScreenCover(item: $model.challenge) { request in
@@ -168,9 +163,9 @@ struct RootView: View {
     private var trackingSection: some View {
         Section {
             Button {
-                showTrackExercise = true
+                model.startFreeChallenge()
             } label: {
-                Label("Übung eintragen", systemImage: "plus.circle.fill")
+                Label("Mit Kamera zählen", systemImage: "camera.fill")
             }
 
             ForEach(ExerciseKind.allCases) { kind in
@@ -188,7 +183,7 @@ struct RootView: View {
         } header: {
             Text("Training")
         } footer: {
-            Text("Trägt eine Einheit von Hand ein – ohne Kamera und ohne Challenge. Sie zählt in Verlauf, Statistik und Streak.")
+            Text("Öffnet die Kamera-Zählung wie bei einer Challenge – nur ohne Sperre und ohne Ziel. Was du zählst, landet im Verlauf und in der Statistik.")
         }
     }
 
@@ -212,13 +207,6 @@ struct RootView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Spacer()
-
-                        if record.isManual {
-                            Text("manuell")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
@@ -232,7 +220,7 @@ struct RootView: View {
         } header: {
             Text("Verlauf")
         } footer: {
-            Text("Die letzten acht Einheiten – Challenges und von Hand eingetragene. Zum Löschen nach links wischen.")
+            Text("Die letzten acht Einheiten. Zum Löschen nach links wischen.")
         }
     }
 

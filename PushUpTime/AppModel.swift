@@ -27,6 +27,8 @@ final class AppModel: ObservableObject {
         enum Kind {
             /// Reiner Test der Zählung ohne Sperre.
             case test
+            /// Freies Training: Kamera zählt, ohne Sperre und ohne Ziel.
+            case free
             /// Aufruf über eine Shortcuts-Automatisierung, optional mit App-Namen.
             case shortcut(String?)
             /// Echte Bildschirmzeit-Sperre, die nach der Challenge freigegeben wird.
@@ -38,7 +40,7 @@ final class AppModel: ObservableObject {
 
         var title: String? {
             switch kind {
-            case .test:
+            case .test, .free:
                 return nil
             case .shortcut(let name):
                 return name
@@ -188,6 +190,12 @@ final class AppModel: ObservableObject {
         challenge = ChallengeRequest(kind: .test)
     }
 
+    /// Freies Training: Kamera zählt die Wiederholungen, ohne Sperre und ohne
+    /// Ziel – das Ergebnis landet ganz normal im Verlauf.
+    func startFreeChallenge() {
+        challenge = ChallengeRequest(kind: .free)
+    }
+
     /// Anzahl für eine Übung.
     func reps(for kind: ExerciseKind) -> Int {
         kind == .pushUps ? pushUpReps : twistReps
@@ -206,18 +214,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    // MARK: - Manuelles Tracking
-
-    /// Trägt eine Einheit von Hand in den Verlauf ein – ohne Kamera-Challenge.
-    func trackExercise(_ kind: ExerciseKind, reps: Int, date: Date = Date()) {
-        history = ChallengeLog.record(
-            reps: max(1, reps),
-            appName: nil,
-            exercise: kind,
-            date: date,
-            source: .manual
-        )
-    }
+    // MARK: - Verlauf
 
     func deleteRecord(_ record: ChallengeRecord) {
         history = ChallengeLog.delete(id: record.id)
@@ -395,8 +392,10 @@ final class AppModel: ObservableObject {
 
     /// Zählt die Challenge, gibt eine Bildschirmzeit-Sperre frei und liefert –
     /// wenn ein Rücksprung-Link hinterlegt ist – das Ziel für den Rücksprung.
+    /// - Parameter reps: Tatsächlich per Kamera gezählte Wiederholungen. Ohne
+    ///   Angabe wird die geforderte Anzahl eingetragen (normale Challenge).
     @discardableResult
-    func completeChallenge() -> ReturnTicket? {
+    func completeChallenge(reps countedReps: Int? = nil) -> ReturnTicket? {
         guard let request = challenge else { return nil }
         challenge = nil
 
@@ -406,14 +405,14 @@ final class AppModel: ObservableObject {
             startRound(entry)
         case .shortcut(.some(let name)):
             ticket = self.ticket(forAppNamed: name)
-        case .shortcut(.none), .test:
+        case .shortcut(.none), .test, .free:
             break
         }
 
         // Testläufe zählen nicht in die Statistik.
         if case .test = request.kind { return ticket }
         history = ChallengeLog.record(
-            reps: max(1, requiredReps),
+            reps: max(1, countedReps ?? requiredReps),
             appName: request.title,
             exercise: exercise
         )
