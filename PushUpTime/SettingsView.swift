@@ -40,33 +40,34 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Stepper(
-                        value: Binding(
-                            get: { model.repsPerMinute },
-                            set: { model.repsPerMinute = max(1, $0) }
-                        ),
-                        in: 1...50
-                    ) {
-                        HStack {
-                            Text("Wiederholungen pro Minute")
-                            Spacer()
-                            Text("\(model.repsPerMinute)")
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    ForEach(ExerciseKind.allCases) { kind in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Stepper(
+                                value: Binding(
+                                    get: { model.repsPerMinute(for: kind) },
+                                    set: { model.setRepsPerMinute($0, for: kind) }
+                                ),
+                                in: 1...50
+                            ) {
+                                HStack {
+                                    Label(kind.title, systemImage: kind.icon)
+                                    Spacer()
+                                    Text("\(model.repsPerMinute(for: kind))")
+                                        .monospacedDigit()
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
 
-                    HStack {
-                        Text("\(model.requiredReps) \(model.exercise.unit(for: model.requiredReps))")
-                        Spacer()
-                        Text("\(model.earnedMinutes(forReps: model.requiredReps)) Min")
-                            .monospacedDigit()
-                            .foregroundStyle(.green)
+                            Text(rateHint(for: kind))
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                        .padding(.vertical, 2)
                     }
                 } header: {
                     Text("Bildschirmzeit-Belohnung")
                 } footer: {
-                    Text("Nach einer Bildschirmzeit-Sperre gibt es je \(model.repsPerMinute) Wiederholungen eine Minute Bildschirmzeit. Standard: 2 Wiederholungen = 1 Minute, also 15 Minuten für 30 Liegestütze.")
+                    Text("Pro Übung getrennt: so viele Wiederholungen bringen eine Minute Bildschirmzeit. Standard sind 2 Wiederholungen pro Minute – 30 Liegestütze also 15 Minuten.")
                 }
 
                 Section {
@@ -136,6 +137,13 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    /// „30 Liegestütze = 15 Min“ – zeigt, was die aktuelle Rate einbringt.
+    private func rateHint(for kind: ExerciseKind) -> String {
+        let reps = max(1, model.reps(for: kind))
+        let minutes = model.earnedMinutes(forReps: reps, exercise: kind)
+        return "\(reps) \(kind.unit(for: reps)) = \(minutes) Min"
     }
 
     private var authText: String {

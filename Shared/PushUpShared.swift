@@ -13,6 +13,8 @@ enum SharedConfig {
     static let exerciseKey = "exerciseKind.v1"
     static let bypassKey = "shortcutBypassMinutes.v1"
     static let rewardRateKey = "repsPerMinute.v1"
+    static let pushUpRateKey = "repsPerMinute.pushUps.v1"
+    static let twistRateKey = "repsPerMinute.russianTwists.v1"
     static let activityPrefix = "round."
 
     static var defaults: UserDefaults {
@@ -178,13 +180,29 @@ enum SharedStore {
     /// Anzahl für die aktuell gewählte Übung (z. B. für den Sperrbildschirm).
     static var requiredReps: Int { reps(for: exercise) }
 
-    /// Wie viele Wiederholungen eine Minute Bildschirmzeit einbringen (Standard 2).
-    static var repsPerMinute: Int {
-        get {
-            guard SharedConfig.defaults.object(forKey: SharedConfig.rewardRateKey) != nil else { return 2 }
+    /// Wie viele Wiederholungen einer Übung eine Minute Bildschirmzeit einbringen
+    /// (Standard 2 – pro Übung einstellbar).
+    static func repsPerMinute(for kind: ExerciseKind) -> Int {
+        let key = rateKey(for: kind)
+        if SharedConfig.defaults.object(forKey: key) != nil {
+            return max(1, SharedConfig.defaults.integer(forKey: key))
+        }
+        // Früher galt ein gemeinsamer Wert für beide Übungen – den übernehmen.
+        if SharedConfig.defaults.object(forKey: SharedConfig.rewardRateKey) != nil {
             return max(1, SharedConfig.defaults.integer(forKey: SharedConfig.rewardRateKey))
         }
-        set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.rewardRateKey) }
+        return 2
+    }
+
+    static func setRepsPerMinute(_ value: Int, for kind: ExerciseKind) {
+        SharedConfig.defaults.set(max(1, value), forKey: rateKey(for: kind))
+    }
+
+    private static func rateKey(for kind: ExerciseKind) -> String {
+        switch kind {
+        case .pushUps: return SharedConfig.pushUpRateKey
+        case .russianTwists: return SharedConfig.twistRateKey
+        }
     }
 
     private static func key(for kind: ExerciseKind) -> String {

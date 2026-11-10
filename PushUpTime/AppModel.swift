@@ -73,9 +73,13 @@ final class AppModel: ObservableObject {
     @Published var bypassMinutes: Int = 10 {
         didSet { SharedStore.bypassMinutes = bypassMinutes }
     }
-    /// Wie viele Wiederholungen eine Minute Bildschirmzeit einbringen.
-    @Published var repsPerMinute: Int = 2 {
-        didSet { SharedStore.repsPerMinute = repsPerMinute }
+    /// Wie viele Liegestütze eine Minute Bildschirmzeit einbringen.
+    @Published var pushUpRepsPerMinute: Int = 2 {
+        didSet { SharedStore.setRepsPerMinute(pushUpRepsPerMinute, for: .pushUps) }
+    }
+    /// Wie viele Russian Twists eine Minute Bildschirmzeit einbringen.
+    @Published var twistRepsPerMinute: Int = 2 {
+        didSet { SharedStore.setRepsPerMinute(twistRepsPerMinute, for: .russianTwists) }
     }
     @Published private(set) var auth: AuthState = .unknown
     @Published var challenge: ChallengeRequest?
@@ -91,7 +95,8 @@ final class AppModel: ObservableObject {
         pushUpReps = SharedStore.reps(for: .pushUps)
         twistReps = SharedStore.reps(for: .russianTwists)
         bypassMinutes = SharedStore.bypassMinutes
-        repsPerMinute = SharedStore.repsPerMinute
+        pushUpRepsPerMinute = SharedStore.repsPerMinute(for: .pushUps)
+        twistRepsPerMinute = SharedStore.repsPerMinute(for: .russianTwists)
         updateAuthorizationState()
 
         // Der Shortcuts-Intent läuft im selben Prozess und meldet sich hier,
@@ -209,9 +214,27 @@ final class AppModel: ObservableObject {
     /// Anzahl für die gerade gewählte Übung.
     var requiredReps: Int { reps(for: exercise) }
 
+    /// Wie viele Wiederholungen einer Übung eine Minute Bildschirmzeit einbringen.
+    func repsPerMinute(for kind: ExerciseKind) -> Int {
+        kind == .pushUps ? pushUpRepsPerMinute : twistRepsPerMinute
+    }
+
+    /// Rate der gerade gewählten Übung.
+    var repsPerMinute: Int { repsPerMinute(for: exercise) }
+
+    func setRepsPerMinute(_ value: Int, for kind: ExerciseKind) {
+        switch kind {
+        case .pushUps:
+            pushUpRepsPerMinute = max(1, value)
+        case .russianTwists:
+            twistRepsPerMinute = max(1, value)
+        }
+    }
+
     /// Bildschirmzeit, die eine Anzahl Wiederholungen einbringt – mindestens eine Minute.
-    func earnedMinutes(forReps reps: Int) -> Int {
-        max(1, max(1, reps) / max(1, repsPerMinute))
+    /// - Parameter kind: Übung der Wiederholungen; ohne Angabe die gerade gewählte.
+    func earnedMinutes(forReps reps: Int, exercise kind: ExerciseKind? = nil) -> Int {
+        max(1, max(1, reps) / max(1, repsPerMinute(for: kind ?? exercise)))
     }
 
     /// Setzt die Anzahl der gerade gewählten Übung.

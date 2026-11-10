@@ -61,7 +61,7 @@ wird nichts – die Disziplin bleibt bei dir.
   dass die Automatisierung dabei nicht sofort wieder PushUpTime nach vorn holt.
 - **Freiwillig mit Kamera tracken:** „Mit Kamera zählen“ auf dem Startbildschirm
   startet dieselbe Kamera-Zählung wie bei einer Challenge – nur ohne Sperre und
-  ohne Ziel. Übung wählen, loslegen, am Ende mit „eintragen“ speichern; die
+  ohne Ziel. Übung wählen, loslegen, am Ende auf „Fertig“ drücken; die
   gezählten Wiederholungen landen im Verlauf und zählen in Statistik,
   Tages-Summen und Streak.
 - **Kleine Statistik:** wie viele Challenges heute erledigt wurden, Streak über
@@ -76,8 +76,14 @@ wird nichts – die Disziplin bleibt bei dir.
 - **Bildschirmzeit verdienen:** Jede Challenge bringt so viel Zeit, wie die
   Wiederholungen hergeben – standardmäßig 2 Wiederholungen = 1 Minute, also
   15 Minuten für 30 Liegestütze. Das Verhältnis lässt sich in den Einstellungen
-  unter „Bildschirmzeit-Belohnung“ ändern; die Minuten pro Sperre gelten nur für
-  die erste Runde und werden danach durch die verdienten Minuten ersetzt.
+  unter „Bildschirmzeit-Belohnung“ für Liegestütze und Russian Twists getrennt
+  einstellen; die Minuten pro Sperre gelten nur für die erste Runde und werden
+  danach durch die verdienten Minuten ersetzt.
+- **Frei zählen bei Sperren:** Bei einer Bildschirmzeit-Sperre legst du vor jeder
+  Challenge neu ein Ziel fest (voreingestellt ist dein Standard). Dieses Ziel ist
+  nur eine Marke: Du kannst früher auf **„Fertig“** drücken oder über das Ziel
+  hinaus weitermachen. Abgerechnet wird, was die Kamera tatsächlich gezählt hat –
+  Mindestlohn ist eine Minute, damit sich jede Challenge lohnt.
 
 ## Bauen
 
