@@ -84,8 +84,9 @@ wird nichts – die Disziplin bleibt bei dir.
   (voreingestellt ist dein Standard). Dieses Ziel ist nur eine Marke: Du kannst
   früher auf **„Fertig“** drücken oder über das Ziel hinaus weitermachen.
   Abgerechnet wird, was die Kamera tatsächlich gezählt hat (bei Sperren als
-  Bildschirmzeit, mindestens eine Minute). Beim Testlauf und beim freien Training
-  bleibt es beim automatischen Ende bzw. der freien Zählung.
+  Bildschirmzeit, mindestens eine Minute). Am Ende zeigt die App die gezählten
+  Wiederholungen und die verdienten Minuten an. Beim Testlauf und beim freien
+  Training bleibt es beim automatischen Ende bzw. der freien Zählung.
 
 ## Bauen
 

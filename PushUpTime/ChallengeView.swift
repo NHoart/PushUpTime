@@ -57,12 +57,19 @@ struct ChallengeView: View {
         return model.earnedMinutes(forReps: camera.count > 0 ? camera.count : reps)
     }
 
-    /// Verdiente Minuten am Ende – gezählt, sonst das Ziel.
-    private var grantedMinutes: Int {
-        model.earnedMinutes(forReps: max(1, camera.count > 0 ? camera.count : reps))
+    /// Am Ende gezählte Wiederholungen (das Ziel, falls nichts gezählt wurde).
+    private var countedReps: Int { max(1, camera.count > 0 ? camera.count : reps) }
+
+    /// Verdiente Bildschirmzeit am Ende – aus den tatsächlich gezählten Wiederholungen.
+    private var grantedMinutes: Int { model.earnedMinutes(forReps: countedReps) }
+
+    /// Reiner Testlauf der Zählung – ohne Belohnung.
+    private var isTest: Bool {
+        if case .test = request.kind { return true }
+        return false
     }
 
-    /// Beschriftung des grünen Abschluss-Buttons (freies Training und Sperre).
+    /// Beschriftung des grünen Abschluss-Buttons (freies Training und App-Challenges).
     private var finishLabel: String {
         guard camera.count > 0 else { return "Fertig" }
         if request.isBlocking {
@@ -382,14 +389,26 @@ struct ChallengeView: View {
                 .font(.system(size: 30, weight: .heavy, design: .rounded))
                 .foregroundStyle(.white)
 
+            Text("\(countedReps) \(exercise.unit(for: countedReps))")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.6))
+                .monospacedDigit()
+
+            if !isTest {
+                Text("+ \(grantedMinutes) Min Bildschirmzeit")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
+                    .monospacedDigit()
+            }
+
             if let name = returnAppName {
                 Text("Zurück zu \(name) …")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             } else {
                 Text(request.isBlocking
-                     ? "\(grantedMinutes) Min Bildschirmzeit freigegeben"
-                     : "Challenge beendet")
+                     ? "Sperre aufgehoben"
+                     : (isFree ? "Im Verlauf eingetragen" : "Challenge beendet"))
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -636,7 +655,8 @@ struct ChallengeView: View {
         let counted = countedReps ?? (camera.count > 0 ? camera.count : nil)
 
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(1100))
+            // Kurz Zeit, die verdienten Minuten zu lesen.
+            try? await Task.sleep(for: .milliseconds(1600))
             leave(ticket: model.completeChallenge(reps: counted))
         }
     }
