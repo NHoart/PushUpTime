@@ -49,7 +49,6 @@ struct RootView: View {
                 challengeSection
                 trackingSection
                 statsSection
-                advancedSection
             }
             .listStyle(.insetGrouped)
             .navigationTitle("PushUpTime")
@@ -192,7 +191,7 @@ struct RootView: View {
         } header: {
             Text("Training")
         } footer: {
-            Text("Öffnet die Kamera-Zählung wie bei einer Challenge – nur ohne Sperre und ohne Ziel. Was du zählst, landet im Verlauf und in der Statistik.")
+            Text("Öffnet die Kamera-Zählung wie bei einer Challenge – nur ohne Ziel. Was du zählst, landet im Verlauf und in der Statistik.")
         }
     }
 
@@ -247,24 +246,4 @@ struct RootView: View {
         model.stats.streak == 1 ? "1 Tag" : "\(model.stats.streak) Tage"
     }
 
-    private var advancedSection: some View {
-        Section {
-            NavigationLink {
-                ScreenTimeView()
-                    .environmentObject(model)
-            } label: {
-                Label("Bildschirmzeit-Sperren", systemImage: "lock.shield")
-            }
-
-            Text("Echtes Blockieren von Apps geht nur über Apples Screen-Time-API und braucht die von Apple genehmigte Family-Controls-Berechtigung (kostenpflichtiges Developer-Konto). Ohne diese Freigabe funktioniert der Benachrichtigungs-Modus oben.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text("Notaus: Wenn die App gerade gesperrt ist, hältst du in der Challenge „Notaus“ 3 Sekunden.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } header: {
-            Text("Optional")
-        }
-    }
 }

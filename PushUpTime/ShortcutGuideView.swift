@@ -124,7 +124,7 @@ struct ShortcutGuideView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
-                Text("In diesem Modus wird nichts gesperrt: Du entscheidest selbst, ob du die Liegestütze machst. Für harte Blockaden gibt es die Bildschirmzeit-Sperren.")
+                Text("In diesem Modus wird nichts gesperrt: Du entscheidest selbst, ob du die Liegestütze machst.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } header: {

@@ -10,103 +10,38 @@
 		00000000000000000000E001 /* PushUpTimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D001 /* PushUpTimeApp.swift */; };
 		00000000000000000000E002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D002 /* AppModel.swift */; };
 		00000000000000000000E003 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D003 /* RootView.swift */; };
-		00000000000000000000E004 /* AddBlockerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D004 /* AddBlockerView.swift */; };
 		00000000000000000000E005 /* ChallengeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D005 /* ChallengeView.swift */; };
 		00000000000000000000E006 /* PushUpCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D006 /* PushUpCamera.swift */; };
 		00000000000000000000E007 /* PushUpShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D007 /* PushUpShared.swift */; };
 		00000000000000000000E008 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D010 /* SettingsView.swift */; };
 		00000000000000000000E009 /* ShortcutRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D014 /* ShortcutRules.swift */; };
 		00000000000000000000E00A /* ShortcutGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D015 /* ShortcutGuideView.swift */; };
-		00000000000000000000E00B /* ScreenTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D016 /* ScreenTimeView.swift */; };
 		00000000000000000000E00C /* ChallengeStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D017 /* ChallengeStats.swift */; };
 		00000000000000000000E00D /* ChallengeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D018 /* ChallengeIntent.swift */; };
 		00000000000000000000E00E /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D019 /* HistoryView.swift */; };
-		00000000000000000000E011 /* PushUpShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D007 /* PushUpShared.swift */; };
-		00000000000000000000E012 /* DeviceActivityMonitorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D008 /* DeviceActivityMonitorExtension.swift */; };
-		00000000000000000000E021 /* PushUpShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D007 /* PushUpShared.swift */; };
-		00000000000000000000E022 /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D009 /* ShieldConfigurationExtension.swift */; };
-		00000000000000000000E031 /* PushUpTimeMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 00000000000000000000B004 /* PushUpTimeMonitor.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		00000000000000000000E032 /* PushUpTimeShield.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 00000000000000000000B006 /* PushUpTimeShield.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		00000000000000000000E041 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D031 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		00000000000000000000B012 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 00000000000000000000F001 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 00000000000000000000B003;
-			remoteInfo = PushUpTimeMonitor;
-		};
-		00000000000000000000B014 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 00000000000000000000F001 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 00000000000000000000B005;
-			remoteInfo = PushUpTimeShield;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		00000000000000000000A004 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				00000000000000000000E031 /* PushUpTimeMonitor.appex in Embed Foundation Extensions */,
-				00000000000000000000E032 /* PushUpTimeShield.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		00000000000000000000B002 /* PushUpTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PushUpTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		00000000000000000000B004 /* PushUpTimeMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PushUpTimeMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		00000000000000000000B006 /* PushUpTimeShield.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PushUpTimeShield.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		00000000000000000000D001 /* PushUpTimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUpTimeApp.swift; sourceTree = "<group>"; };
 		00000000000000000000D002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		00000000000000000000D003 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		00000000000000000000D004 /* AddBlockerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBlockerView.swift; sourceTree = "<group>"; };
 		00000000000000000000D005 /* ChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeView.swift; sourceTree = "<group>"; };
 		00000000000000000000D006 /* PushUpCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUpCamera.swift; sourceTree = "<group>"; };
 		00000000000000000000D007 /* PushUpShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUpShared.swift; sourceTree = "<group>"; };
-		00000000000000000000D008 /* DeviceActivityMonitorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceActivityMonitorExtension.swift; sourceTree = "<group>"; };
-		00000000000000000000D009 /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		00000000000000000000D010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		00000000000000000000D011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00000000000000000000D014 /* ShortcutRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRules.swift; sourceTree = "<group>"; };
 		00000000000000000000D015 /* ShortcutGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutGuideView.swift; sourceTree = "<group>"; };
-		00000000000000000000D016 /* ScreenTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeView.swift; sourceTree = "<group>"; };
 		00000000000000000000D017 /* ChallengeStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeStats.swift; sourceTree = "<group>"; };
 		00000000000000000000D018 /* ChallengeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeIntent.swift; sourceTree = "<group>"; };
 		00000000000000000000D019 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
-		00000000000000000000D011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		00000000000000000000D012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		00000000000000000000D013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		00000000000000000000D021 /* PushUpTime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PushUpTime.entitlements; sourceTree = "<group>"; };
-		00000000000000000000D022 /* PushUpTimeMonitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PushUpTimeMonitor.entitlements; sourceTree = "<group>"; };
-		00000000000000000000D023 /* PushUpTimeShield.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PushUpTimeShield.entitlements; sourceTree = "<group>"; };
 		00000000000000000000D031 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		00000000000000000000A002 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		00000000000000000000A012 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		00000000000000000000A022 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -121,8 +56,6 @@
 			children = (
 				00000000000000000000F004 /* PushUpTime */,
 				00000000000000000000F005 /* Shared */,
-				00000000000000000000F006 /* PushUpTimeMonitor */,
-				00000000000000000000F007 /* PushUpTimeShield */,
 				00000000000000000000F003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -131,8 +64,6 @@
 			isa = PBXGroup;
 			children = (
 				00000000000000000000B002 /* PushUpTime.app */,
-				00000000000000000000B004 /* PushUpTimeMonitor.appex */,
-				00000000000000000000B006 /* PushUpTimeShield.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -143,19 +74,16 @@
 				00000000000000000000D001 /* PushUpTimeApp.swift */,
 				00000000000000000000D002 /* AppModel.swift */,
 				00000000000000000000D003 /* RootView.swift */,
-				00000000000000000000D004 /* AddBlockerView.swift */,
 				00000000000000000000D005 /* ChallengeView.swift */,
 				00000000000000000000D006 /* PushUpCamera.swift */,
 				00000000000000000000D010 /* SettingsView.swift */,
 				00000000000000000000D014 /* ShortcutRules.swift */,
 				00000000000000000000D015 /* ShortcutGuideView.swift */,
-				00000000000000000000D016 /* ScreenTimeView.swift */,
 				00000000000000000000D017 /* ChallengeStats.swift */,
 				00000000000000000000D018 /* ChallengeIntent.swift */,
 				00000000000000000000D019 /* HistoryView.swift */,
 				00000000000000000000D031 /* Assets.xcassets */,
 				00000000000000000000D011 /* Info.plist */,
-				00000000000000000000D021 /* PushUpTime.entitlements */,
 			);
 			path = PushUpTime;
 			sourceTree = "<group>";
@@ -168,26 +96,6 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
-		00000000000000000000F006 /* PushUpTimeMonitor */ = {
-			isa = PBXGroup;
-			children = (
-				00000000000000000000D008 /* DeviceActivityMonitorExtension.swift */,
-				00000000000000000000D012 /* Info.plist */,
-				00000000000000000000D022 /* PushUpTimeMonitor.entitlements */,
-			);
-			path = PushUpTimeMonitor;
-			sourceTree = "<group>";
-		};
-		00000000000000000000F007 /* PushUpTimeShield */ = {
-			isa = PBXGroup;
-			children = (
-				00000000000000000000D009 /* ShieldConfigurationExtension.swift */,
-				00000000000000000000D013 /* Info.plist */,
-				00000000000000000000D023 /* PushUpTimeShield.entitlements */,
-			);
-			path = PushUpTimeShield;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -198,52 +106,15 @@
 				00000000000000000000A001 /* Sources */,
 				00000000000000000000A002 /* Frameworks */,
 				00000000000000000000A003 /* Resources */,
-				00000000000000000000A004 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				00000000000000000000B011 /* PBXTargetDependency */,
-				00000000000000000000B013 /* PBXTargetDependency */,
 			);
 			name = PushUpTime;
 			productName = PushUpTime;
 			productReference = 00000000000000000000B002 /* PushUpTime.app */;
 			productType = "com.apple.product-type.application";
-		};
-		00000000000000000000B003 /* PushUpTimeMonitor */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 00000000000000000000C003 /* Build configuration list for PBXNativeTarget "PushUpTimeMonitor" */;
-			buildPhases = (
-				00000000000000000000A011 /* Sources */,
-				00000000000000000000A012 /* Frameworks */,
-				00000000000000000000A013 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = PushUpTimeMonitor;
-			productName = PushUpTimeMonitor;
-			productReference = 00000000000000000000B004 /* PushUpTimeMonitor.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
-		00000000000000000000B005 /* PushUpTimeShield */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 00000000000000000000C004 /* Build configuration list for PBXNativeTarget "PushUpTimeShield" */;
-			buildPhases = (
-				00000000000000000000A021 /* Sources */,
-				00000000000000000000A022 /* Frameworks */,
-				00000000000000000000A023 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = PushUpTimeShield;
-			productName = PushUpTimeShield;
-			productReference = 00000000000000000000B006 /* PushUpTimeShield.appex */;
-			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -256,12 +127,6 @@
 				LastUpgradeCheck = 2720;
 				TargetAttributes = {
 					00000000000000000000B001 = {
-						CreatedOnToolsVersion = 27.0;
-					};
-					00000000000000000000B003 = {
-						CreatedOnToolsVersion = 27.0;
-					};
-					00000000000000000000B005 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -281,8 +146,6 @@
 			projectRoot = "";
 			targets = (
 				00000000000000000000B001 /* PushUpTime */,
-				00000000000000000000B003 /* PushUpTimeMonitor */,
-				00000000000000000000B005 /* PushUpTimeShield */,
 			);
 		};
 /* End PBXProject section */
@@ -296,20 +159,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		00000000000000000000A013 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		00000000000000000000A023 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -320,52 +169,19 @@
 				00000000000000000000E001 /* PushUpTimeApp.swift in Sources */,
 				00000000000000000000E002 /* AppModel.swift in Sources */,
 				00000000000000000000E003 /* RootView.swift in Sources */,
-				00000000000000000000E004 /* AddBlockerView.swift in Sources */,
 				00000000000000000000E005 /* ChallengeView.swift in Sources */,
 				00000000000000000000E006 /* PushUpCamera.swift in Sources */,
 				00000000000000000000E007 /* PushUpShared.swift in Sources */,
 				00000000000000000000E008 /* SettingsView.swift in Sources */,
 				00000000000000000000E009 /* ShortcutRules.swift in Sources */,
 				00000000000000000000E00A /* ShortcutGuideView.swift in Sources */,
-				00000000000000000000E00B /* ScreenTimeView.swift in Sources */,
 				00000000000000000000E00C /* ChallengeStats.swift in Sources */,
 				00000000000000000000E00D /* ChallengeIntent.swift in Sources */,
 				00000000000000000000E00E /* HistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		00000000000000000000A011 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				00000000000000000000E011 /* PushUpShared.swift in Sources */,
-				00000000000000000000E012 /* DeviceActivityMonitorExtension.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		00000000000000000000A021 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				00000000000000000000E021 /* PushUpShared.swift in Sources */,
-				00000000000000000000E022 /* ShieldConfigurationExtension.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		00000000000000000000B011 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 00000000000000000000B003 /* PushUpTimeMonitor */;
-			targetProxy = 00000000000000000000B012 /* PBXContainerItemProxy */;
-		};
-		00000000000000000000B013 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 00000000000000000000B005 /* PushUpTimeShield */;
-			targetProxy = 00000000000000000000B014 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		00000000000000000000C011 /* Debug */ = {
@@ -495,7 +311,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = PushUpTime/PushUpTime.Debug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -519,7 +334,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = PushUpTime/PushUpTime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -533,98 +347,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
-		00000000000000000000C015 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = PushUpTimeMonitor/PushUpTimeMonitor.Debug.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = PushUpTimeMonitor/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7.monitor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		00000000000000000000C016 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = PushUpTimeMonitor/PushUpTimeMonitor.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = PushUpTimeMonitor/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7.monitor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
-		00000000000000000000C017 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = PushUpTimeShield/PushUpTimeShield.Debug.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = PushUpTimeShield/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7.shield;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		00000000000000000000C018 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = PushUpTimeShield/PushUpTimeShield.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = PushUpTimeShield/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7.shield;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -647,24 +369,6 @@
 			buildConfigurations = (
 				00000000000000000000C013 /* Debug */,
 				00000000000000000000C014 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		00000000000000000000C003 /* Build configuration list for PBXNativeTarget "PushUpTimeMonitor" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				00000000000000000000C015 /* Debug */,
-				00000000000000000000C016 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		00000000000000000000C004 /* Build configuration list for PBXNativeTarget "PushUpTimeShield" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				00000000000000000000C017 /* Debug */,
-				00000000000000000000C018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

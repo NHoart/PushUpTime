@@ -1,7 +1,5 @@
 import Combine
-import FamilyControls
 import Foundation
-import ManagedSettings
 
 /// Ziel für den Rücksprung nach einer erledigten Challenge.
 struct ReturnTicket {
@@ -9,30 +7,17 @@ struct ReturnTicket {
     let url: URL
 }
 
-/// Zentraler Zustand der App: Shortcut-Regeln, optionale Bildschirmzeit-Sperren
-/// und die laufende Challenge.
+/// Zentraler Zustand der App: Shortcut-Regeln, Verlauf und die laufende Challenge.
 @MainActor
 final class AppModel: ObservableObject {
-    enum AuthState: Equatable {
-        case unknown
-        case notDetermined
-        case approved
-        case denied
-        case failed(String)
-
-        var isApproved: Bool { self == .approved }
-    }
-
     struct ChallengeRequest: Identifiable {
         enum Kind {
-            /// Reiner Test der Zählung ohne Sperre.
+            /// Reiner Test der Zählung.
             case test
-            /// Freies Training: Kamera zählt, ohne Sperre und ohne Ziel.
+            /// Freies Training: Kamera zählt, ohne Ziel.
             case free
             /// Aufruf über eine Shortcuts-Automatisierung, optional mit App-Namen.
             case shortcut(String?)
-            /// Echte Bildschirmzeit-Sperre, die nach der Challenge freigegeben wird.
-            case screenTime(BlockerEntry)
         }
 
         let id = UUID()
@@ -44,19 +29,10 @@ final class AppModel: ObservableObject {
                 return nil
             case .shortcut(let name):
                 return name
-            case .screenTime(let entry):
-                return entry.title
             }
-        }
-
-        /// Nur bei einer echten Sperre gibt es etwas freizugeben.
-        var isBlocking: Bool {
-            if case .screenTime = kind { return true }
-            return false
         }
     }
 
-    @Published private(set) var entries: [BlockerEntry] = []
     @Published private(set) var shortcutRules: [ShortcutRule] = []
     @Published private(set) var history: [ChallengeRecord] = []
     /// Welche Übung die nächste Challenge verlangt.
@@ -69,35 +45,22 @@ final class AppModel: ObservableObject {
     @Published var twistReps: Int = 220 {
         didSet { SharedStore.setReps(twistReps, for: .russianTwists) }
     }
-    /// Wie viele Minuten eine übersprungene App freibleibt.
+    /// Wie viele Minuten dieselbe App nach dem Überspringen Ruhe hat.
     @Published var bypassMinutes: Int = 10 {
         didSet { SharedStore.bypassMinutes = bypassMinutes }
     }
-    /// Wie viele Liegestütze eine Minute Bildschirmzeit einbringen.
-    @Published var pushUpRepsPerMinute: Int = 2 {
-        didSet { SharedStore.setRepsPerMinute(pushUpRepsPerMinute, for: .pushUps) }
-    }
-    /// Wie viele Russian Twists eine Minute Bildschirmzeit einbringen.
-    @Published var twistRepsPerMinute: Int = 2 {
-        didSet { SharedStore.setRepsPerMinute(twistRepsPerMinute, for: .russianTwists) }
-    }
-    @Published private(set) var auth: AuthState = .unknown
     @Published var challenge: ChallengeRequest?
     @Published var errorMessage: String?
 
     private var challengeObserver: AnyCancellable?
 
     init() {
-        entries = SharedStore.loadEntries()
         shortcutRules = ShortcutRuleStore.load()
         history = ChallengeLog.load()
         exercise = SharedStore.exercise
         pushUpReps = SharedStore.reps(for: .pushUps)
         twistReps = SharedStore.reps(for: .russianTwists)
         bypassMinutes = SharedStore.bypassMinutes
-        pushUpRepsPerMinute = SharedStore.repsPerMinute(for: .pushUps)
-        twistRepsPerMinute = SharedStore.repsPerMinute(for: .russianTwists)
-        updateAuthorizationState()
 
         // Der Shortcuts-Intent läuft im selben Prozess und meldet sich hier,
         // sobald die App im Vordergrund ist.
@@ -114,7 +77,7 @@ final class AppModel: ObservableObject {
             }
     }
 
-    // MARK: - Shortcuts-Modus (ohne Bildschirmzeit)
+    // MARK: - Shortcuts-Modus
 
     func addShortcutRule(appName: String) {
         let clean = appName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -200,8 +163,8 @@ final class AppModel: ObservableObject {
         challenge = ChallengeRequest(kind: .test)
     }
 
-    /// Freies Training: Kamera zählt die Wiederholungen, ohne Sperre und ohne
-    /// Ziel – das Ergebnis landet ganz normal im Verlauf.
+    /// Freies Training: Kamera zählt die Wiederholungen, ohne Ziel – das
+    /// Ergebnis landet ganz normal im Verlauf.
     func startFreeChallenge() {
         challenge = ChallengeRequest(kind: .free)
     }
@@ -213,29 +176,6 @@ final class AppModel: ObservableObject {
 
     /// Anzahl für die gerade gewählte Übung.
     var requiredReps: Int { reps(for: exercise) }
-
-    /// Wie viele Wiederholungen einer Übung eine Minute Bildschirmzeit einbringen.
-    func repsPerMinute(for kind: ExerciseKind) -> Int {
-        kind == .pushUps ? pushUpRepsPerMinute : twistRepsPerMinute
-    }
-
-    /// Rate der gerade gewählten Übung.
-    var repsPerMinute: Int { repsPerMinute(for: exercise) }
-
-    func setRepsPerMinute(_ value: Int, for kind: ExerciseKind) {
-        switch kind {
-        case .pushUps:
-            pushUpRepsPerMinute = max(1, value)
-        case .russianTwists:
-            twistRepsPerMinute = max(1, value)
-        }
-    }
-
-    /// Bildschirmzeit, die eine Anzahl Wiederholungen einbringt – mindestens eine Minute.
-    /// - Parameter kind: Übung der Wiederholungen; ohne Angabe die gerade gewählte.
-    func earnedMinutes(forReps reps: Int, exercise kind: ExerciseKind? = nil) -> Int {
-        max(1, max(1, reps) / max(1, repsPerMinute(for: kind ?? exercise)))
-    }
 
     /// Setzt die Anzahl der gerade gewählten Übung.
     func setReps(_ value: Int) {
@@ -266,129 +206,7 @@ final class AppModel: ObservableObject {
         ChallengeLog.summary(of: history)
     }
 
-    // MARK: - Bildschirmzeit-Freigabe
-
-    func updateAuthorizationState() {
-        switch AuthorizationCenter.shared.authorizationStatus {
-        case .approved:
-            auth = .approved
-        case .denied:
-            auth = .denied
-        case .notDetermined:
-            auth = .notDetermined
-        case .approvedWithDataAccess:
-            auth = .approved
-        @unknown default:
-            auth = .unknown
-        }
-    }
-
-    func requestAuthorization() async {
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            updateAuthorizationState()
-        } catch {
-            updateAuthorizationState()
-            if auth != .approved {
-                auth = .failed(Self.describe(error))
-            }
-        }
-    }
-
-    private static func describe(_ error: Error) -> String {
-        let nsError = error as NSError
-        if nsError.domain.localizedCaseInsensitiveContains("FamilyControls")
-            || nsError.domain.localizedCaseInsensitiveContains("Authorization") {
-            return "Bildschirmzeit nicht verfügbar (Code \(nsError.code)). Das Sperren anderer Apps braucht die von Apple genehmigte Family-Controls-Berechtigung. Kostenlose persönliche Apple-Teams unterstützen sie nicht – dafür ist eine kostenpflichtige Apple-Developer-Mitgliedschaft nötig."
-        }
-        return error.localizedDescription
-    }
-
-    // MARK: - Bildschirmzeit-Sperren verwalten
-
-    func reload() {
-        entries = SharedStore.loadEntries()
-    }
-
-    func addBlocker(title: String, minutes: Int, selection: FamilyActivitySelection) {
-        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        var entry = BlockerEntry(
-            title: cleanTitle.isEmpty ? "Sperre" : cleanTitle,
-            minutes: minutes,
-            selection: selection
-        )
-        entry.roundSerial = 1
-
-        var all = SharedStore.loadEntries()
-        all.append(entry)
-        SharedStore.save(all)
-
-        if auth.isApproved {
-            RoundScheduler.startRound(for: entry, serial: 1)
-        }
-        reload()
-    }
-
-    func delete(_ entry: BlockerEntry) {
-        RoundScheduler.stopRounds(for: entry.id)
-        ShieldManager.clearShield(for: entry.id)
-
-        var all = SharedStore.loadEntries()
-        all.removeAll { $0.id == entry.id }
-        SharedStore.save(all)
-        reload()
-    }
-
-    func setMinutes(_ minutes: Int, for entry: BlockerEntry) {
-        SharedStore.update(id: entry.id) { $0.minutes = max(1, minutes) }
-        reload()
-
-        guard let updated = entries.first(where: { $0.id == entry.id }), !updated.isLocked else { return }
-        RoundScheduler.startRound(for: updated, serial: updated.roundSerial)
-    }
-
-    // MARK: - Sperren und Freigeben
-
-    /// Sperrt sofort (ohne Zeitlimit abzuwarten) – auch zum Testen.
-    func lockNow(_ entry: BlockerEntry) {
-        ShieldManager.applyShield(for: entry)
-        RoundScheduler.stopRounds(for: entry.id)
-        SharedStore.update(id: entry.id) { $0.isLocked = true }
-        reload()
-    }
-
-    /// Startet eine neue Runde: Sperre weg, Zeitbudget läuft wieder.
-    /// - Parameter minutes: Budget dieser Runde. Ohne Angabe gilt das bisherige
-    ///   Budget der Sperre; nach einer Challenge sind es die verdienten Minuten.
-    func startRound(_ entry: BlockerEntry, minutes: Int? = nil) {
-        let budget = max(1, minutes ?? entry.minutes)
-        let serial = entry.roundSerial + 1
-        ShieldManager.clearShield(for: entry.id)
-        let started = RoundScheduler.startRound(for: entry, serial: serial, minutes: budget)
-        SharedStore.update(id: entry.id) {
-            $0.isLocked = false
-            $0.roundSerial = serial
-            $0.minutes = budget
-        }
-        if !started {
-            errorMessage = "Das Zeitlimit konnte nicht gestartet werden. Prüfe, ob Bildschirmzeit für PushUpTime freigegeben ist."
-        }
-        reload()
-    }
-
-    /// Notfall-Ausweg, damit niemand dauerhaft ausgesperrt ist.
-    func emergencyUnlock(_ entry: BlockerEntry) {
-        ShieldManager.clearShield(for: entry.id)
-        RoundScheduler.stopRounds(for: entry.id)
-        SharedStore.update(id: entry.id) { $0.isLocked = false }
-        reload()
-    }
-
     // MARK: - Challenge
-
-    func beginChallenge(for entry: BlockerEntry) {
-        challenge = ChallengeRequest(kind: .screenTime(entry))
-    }
 
     /// Beendet die Challenge ohne Zählung und gibt die App für eine Weile frei.
     /// Gibt es einen Rücksprung-Link, wird der Weg zurück vorbereitet.
@@ -417,18 +235,8 @@ final class AppModel: ObservableObject {
         return ReturnTicket(appName: name, url: url)
     }
 
-    /// Gibt die aktuell gesperrte App frei und beendet die Challenge.
-    func emergencyUnlockCurrent() {
-        guard let request = challenge, case .screenTime(let entry) = request.kind else {
-            challenge = nil
-            return
-        }
-        emergencyUnlock(entry)
-        challenge = nil
-    }
-
-    /// Zählt die Challenge, gibt eine Bildschirmzeit-Sperre frei und liefert –
-    /// wenn ein Rücksprung-Link hinterlegt ist – das Ziel für den Rücksprung.
+    /// Zählt die Challenge und liefert – wenn ein Rücksprung-Link hinterlegt
+    /// ist – das Ziel für den Rücksprung.
     /// - Parameter reps: Tatsächlich per Kamera gezählte Wiederholungen. Ohne
     ///   Angabe wird die geforderte Anzahl eingetragen (normale Challenge).
     @discardableResult
@@ -437,14 +245,8 @@ final class AppModel: ObservableObject {
         challenge = nil
 
         var ticket: ReturnTicket?
-        switch request.kind {
-        case .screenTime(let entry):
-            // Die nächste Runde dauert so lange, wie die Wiederholungen hergeben.
-            startRound(entry, minutes: earnedMinutes(forReps: max(1, countedReps ?? requiredReps)))
-        case .shortcut(.some(let name)):
+        if case .shortcut(.some(let name)) = request.kind {
             ticket = self.ticket(forAppNamed: name)
-        case .shortcut(.none), .test, .free:
-            break
         }
 
         // Testläufe zählen nicht in die Statistik.

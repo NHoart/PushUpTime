@@ -1,25 +1,18 @@
 # PushUpTime (iPhone)
 
 iPhone-App, die dich an **Liegestütze** erinnert, bevor du in Ablenkungs-Apps
-verschwindest – und die auf Wunsch Apps sperrt, bis du sie gemacht hast.
+verschwindest. Der Auslöser liegt in der Shortcuts-App, gezählt wird per Kamera.
+PushUpTime selbst sperrt keine Apps – du entscheidest nach der Challenge, ob du
+weitermachst.
 
-## Warum nicht einfach Bildschirmzeit?
+Das funktioniert mit einem **kostenlosen Apple-Account** (persönliches Team).
 
-iOS erlaubt **keiner App**, mitzulesen, welche App du gerade öffnest, und auch
-keine Benachrichtigung an das Öffnen einer fremden App zu hängen. Das kann nur
-Apples Screen-Time-API – und die verlangt die Berechtigung
-`com.apple.developer.family-controls`, die Apple einzeln genehmigen muss.
-Kostenlose persönliche Apple-Teams bekommen sie nicht.
+## Warum Shortcuts?
 
-Deshalb hat PushUpTime zwei Modi:
-
-| Modus | Wie es funktioniert | Was du brauchst |
-| --- | --- | --- |
-| **Benachrichtigung über Shortcuts** (Standard) | Eine persönliche Automatisierung in der Shortcuts-App reagiert auf „App ist geöffnet“ und ruft PushUpTime auf – die Liegestütz-Zählung startet sofort. Alternativ nur eine Mitteilung. | nichts weiter |
-| **Bildschirmzeit-Sperren** (optional) | Echte Blockade über Family Controls + Managed Settings, Zeitbudget pro App, eigener Sperrbildschirm. | kostenpflichtiges Apple-Developer-Konto + von Apple genehmigte Family-Controls-Berechtigung |
-
-Der Standardweg läuft mit einem kostenlosen Apple-Team, weil der Auslöser in der
-Shortcuts-App liegt und PushUpTime nur noch per URL-Schema gestartet wird.
+iOS erlaubt keiner App mitzulesen, welche App du gerade öffnest. Das kann nur
+eine persönliche Automatisierung in der Shortcuts-App: Sie reagiert auf
+„App ist geöffnet“ und ruft PushUpTime auf – die Zählung startet sofort.
+Alternativ zeigt sie nur eine Mitteilung.
 
 ## Benachrichtigungs-Modus einrichten
 
@@ -60,33 +53,22 @@ wird nichts – die Disziplin bleibt bei dir.
   über ihr URL-Schema (z. B. `instagram://`). Ein kurzer Launch-Pass sorgt dafür,
   dass die Automatisierung dabei nicht sofort wieder PushUpTime nach vorn holt.
 - **Freiwillig mit Kamera tracken:** „Mit Kamera zählen“ auf dem Startbildschirm
-  startet dieselbe Kamera-Zählung wie bei einer Challenge – nur ohne Sperre und
-  ohne Ziel. Übung wählen, loslegen, am Ende auf „Fertig“ drücken; die
-  gezählten Wiederholungen landen im Verlauf und zählen in Statistik,
-  Tages-Summen und Streak.
+  startet dieselbe Kamera-Zählung wie bei einer Challenge – nur ohne Ziel.
+  Übung wählen, loslegen, am Ende auf „Fertig“ drücken; die gezählten
+  Wiederholungen landen im Verlauf und zählen in Statistik, Tages-Summen und
+  Streak.
 - **Kleine Statistik:** wie viele Challenges heute erledigt wurden, Streak über
   aufeinanderfolgende Tage und die letzte Einheit (Zeitpunkt, App, Anzahl).
 - **Verlauf-Tab mit Monatsdiagramm:** Balkendiagramm der letzten 30 Tage,
   umschaltbar zwischen Liegestützen und Russian Twists. Darunter Summe der 30
   Tage, aktive Tage und bester Tag sowie alle Einheiten (Challenges und freie
   Trainings); zum Löschen nach links wischen.
-- **Bildschirmzeit-Sperren (optional):** Auswahl über den System-`FamilyActivityPicker`,
-  eigenes Zeitbudget pro Sperre (Standard 10 Minuten), Sperrbildschirm aus der
-  Shield-Erweiterung, mehrere Sperren parallel.
-- **Bildschirmzeit verdienen:** Jede Challenge bringt so viel Zeit, wie die
-  Wiederholungen hergeben – standardmäßig 2 Wiederholungen = 1 Minute, also
-  15 Minuten für 30 Liegestütze. Das Verhältnis lässt sich in den Einstellungen
-  unter „Bildschirmzeit-Belohnung“ für Liegestütze und Russian Twists getrennt
-  einstellen; die Minuten pro Sperre gelten nur für die erste Runde und werden
-  danach durch die verdienten Minuten ersetzt.
-- **Frei zählen bei App-Challenges:** Egal ob Bildschirmzeit-Sperre oder
-  Shortcuts-Aufruf – vor jeder Challenge legst du neu ein Ziel fest
-  (voreingestellt ist dein Standard). Dieses Ziel ist nur eine Marke: Du kannst
-  früher auf **„Fertig“** drücken oder über das Ziel hinaus weitermachen.
-  Abgerechnet wird, was die Kamera tatsächlich gezählt hat (bei Sperren als
-  Bildschirmzeit, mindestens eine Minute). Am Ende zeigt die App die gezählten
-  Wiederholungen und die verdienten Minuten an. Beim Testlauf und beim freien
-  Training bleibt es beim automatischen Ende bzw. der freien Zählung.
+- **Ziel als Marke:** Bei einem App-Aufruf zeigt der Zähler dein Standard-Ziel.
+  Du kannst früher auf „Fertig“ drücken oder über das Ziel hinaus weitermachen;
+  eingetragen wird, was die Kamera tatsächlich gezählt hat.
+- **Überspringen:** Schließt die Challenge ohne Zählung. Dieselbe App löst danach
+  für die eingestellte Zeit keine neue Challenge aus (Standard 10 Minuten,
+  0 = sofort wieder).
 
 ## Bauen
 
@@ -94,54 +76,39 @@ wird nichts – die Disziplin bleibt bei dir.
 open PushUpTime.xcodeproj
 ```
 
-Zielgerät wählen, Team in den Signing-Einstellungen prüfen, starten.
+Zielgerät wählen, unter *Signing & Capabilities* dein persönliches Team
+auswählen, starten.
+
 Kommandozeile (Simulator, ohne Signatur):
 
 ```bash
-xcodebuild -project PushUpTime.xcodeproj -scheme PushUpTime \
-  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project PushUpTime.xcodeproj -target PushUpTime \
+  -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
 ```
 
-Auf dem Simulator gibt es keine Kamera-Zählung und kein Screen Time – zum
-Ausprobieren der Challenge brauchst du ein echtes iPhone.
+Auf dem Simulator gibt es keine Kamera-Zählung – zum Ausprobieren brauchst du
+ein echtes iPhone.
 
-## Bildschirmzeit-Modus aktivieren
+## Kostenloses Apple-Team
 
-1. Antrag stellen: <https://developer.apple.com/contact/request/family-controls-distribution>
-2. Nach der Genehmigung im Developer-Portal die Capability **Family Controls** für
-   App-ID `com.noahh.pushuptime.9c31f7` sowie die beiden Erweiterungen aktivieren.
-3. App-Gruppe `group.com.noahh.pushuptime.9c31f7` für alle drei Targets anlegen.
-
-Die Bundle-IDs kannst du jederzeit in Xcode unter *Signing & Capabilities* ändern,
-falls eine davon schon vergeben ist – die Erweiterungen müssen dabei immer mit der
-App-ID beginnen (`<app-id>.monitor`, `<app-id>.shield`).
-
-| Konfiguration | Entitlements | Signierbar mit | Kann Apps sperren |
-| --- | --- | --- | --- |
-| **Debug** | `*.Debug.entitlements` (leer) | persönlichem Team | nein |
-| **Release** | `*.entitlements` (Family Controls + App Group) | bezahltem Team | ja (nach Apple-Freigabe) |
+- Das Provisioning-Profil läuft nach 7 Tagen ab; die App danach über Xcode neu
+  installieren.
+- Maximal 3 Apps gleichzeitig bzw. 10 App-IDs pro Woche.
+- PushUpTime braucht nur die Kamera und die Shortcuts-Automatisierung.
 
 ## Projektstruktur
 
 | Pfad | Inhalt |
 | --- | --- |
 | `PushUpTime/` | App: SwiftUI-Oberfläche, Zustand, Kamera-Zählung, Shortcut-Anleitung |
-| `PushUpTimeMonitor/` | DeviceActivity-Monitor: sperrt bei erreichtem Zeitbudget |
-| `PushUpTimeShield/` | Shield-Konfiguration: Aussehen des Sperrbildschirms |
-| `Shared/PushUpShared.swift` | Modell, App-Group-Speicher, Shield- und Zeitplan-Logik |
+| `Shared/PushUpShared.swift` | Modell, Speicher, Übungsauswahl, Übergabe an Shortcuts |
 
-## Grenzen & Notaus
+## Grenzen
 
-- Die Sperre ist Selbstkontrolle: iOS erlaubt es nicht, sie unumgehbar zu machen.
-- Notaus in der Challenge: „Notaus“ 3 Sekunden halten entsperrt die App.
-- „Überspringen“ auf dem Challenge-Screen schließt sie ohne Zählung; dieselbe App
-  löst danach keine Challenge mehr aus – wie lange, steht in den Einstellungen
-  unter „Überspringen“ (Standard 10 Minuten, 0 = keine Freigabe).
+- Die App blockiert nichts: Selbstkontrolle.
 - Der automatische Rücksprung braucht die Aktion **„Liegestütze starten“**
   (App Intent, iOS 26+) und einen Rücksprung-Link pro App. Mit dem alten
   „URL öffnen“ bleibt es beim App-Umschalter: Jedes Öffnen per URL ist ein neues
   „App ist geöffnet“ und holt PushUpTime sofort wieder nach vorn.
-- Alternativ die Sperre in iOS-Einstellungen → Bildschirmzeit deaktivieren bzw.
-  PushUpTime den Bildschirmzeit-Zugriff entziehen.
 - Kamera-Zählung braucht seitliches Ablegen des iPhones, sodass Schulter, Ellbogen
   und Handgelenk sichtbar sind.

@@ -13,33 +13,23 @@ struct ChallengeView: View {
     /// Noch nichts gewählt = Übungsauswahl wird angezeigt.
     @State private var chosenExercise: ExerciseKind?
 
-    /// Bei einer Sperre: Ziel für genau diese Challenge – freiwillig und frei wählbar.
-    @State private var goal: Int?
-
-    /// Übung, für die gerade das Ziel eingestellt wird.
-    @State private var configuringGoal: ExerciseKind?
-
-    /// Test, Shortcuts-Aufruf oder echte Bildschirmzeit-Sperre.
+    /// Test, freies Training oder Shortcuts-Aufruf.
     let request: AppModel.ChallengeRequest
 
     private var exercise: ExerciseKind { chosenExercise ?? model.exercise }
-    /// Ziel der Challenge: bei Sperren das selbst gesetzte, sonst der Standard.
-    private var reps: Int { max(1, goal ?? model.reps(for: exercise)) }
-    private var remaining: Int { max(0, reps - camera.count) }
+    /// Ziel der Challenge: der Standard der gewählten Übung.
+    private var reps: Int { max(1, model.reps(for: exercise)) }
 
-    /// Freies Training: keine Sperre, kein Ziel – eingetragen wird, was gezählt wurde.
+    /// Freies Training: keine App, kein Ziel – eingetragen wird, was gezählt wurde.
     private var isFree: Bool {
         if case .free = request.kind { return true }
         return false
     }
 
-    /// Von einer App ausgelöst (Bildschirmzeit-Sperre oder Shortcuts-Aufruf):
-    /// Ziel vorab festlegen, frei zählen und selbst über „Fertig“ beenden.
+    /// Von einer App ausgelöst (Shortcuts-Aufruf): Ziel als Marke, frei weiterzählen.
     private var isAppChallenge: Bool {
-        switch request.kind {
-        case .screenTime, .shortcut: return true
-        case .test, .free: return false
-        }
+        if case .shortcut = request.kind { return true }
+        return false
     }
 
     private var statusLabel: String {
@@ -47,34 +37,15 @@ struct ChallengeView: View {
         case .test: return "TESTLAUF"
         case .free: return "FREIES TRAINING"
         case .shortcut: return exercise.statusLabel
-        case .screenTime: return "GESPERRT"
         }
-    }
-
-    /// Bildschirmzeit, die der aktuelle Stand einbringt (nur bei echter Sperre).
-    private var rewardMinutes: Int? {
-        guard request.isBlocking else { return nil }
-        return model.earnedMinutes(forReps: camera.count > 0 ? camera.count : reps)
     }
 
     /// Am Ende gezählte Wiederholungen (das Ziel, falls nichts gezählt wurde).
     private var countedReps: Int { max(1, camera.count > 0 ? camera.count : reps) }
 
-    /// Verdiente Bildschirmzeit am Ende – aus den tatsächlich gezählten Wiederholungen.
-    private var grantedMinutes: Int { model.earnedMinutes(forReps: countedReps) }
-
-    /// Reiner Testlauf der Zählung – ohne Belohnung.
-    private var isTest: Bool {
-        if case .test = request.kind { return true }
-        return false
-    }
-
-    /// Beschriftung des grünen Abschluss-Buttons (freies Training und App-Challenges).
+    /// Beschriftung des grünen Abschluss-Buttons.
     private var finishLabel: String {
         guard camera.count > 0 else { return "Fertig" }
-        if request.isBlocking {
-            return "Fertig · \(model.earnedMinutes(forReps: camera.count)) Min"
-        }
         return "Fertig · \(camera.count) \(exercise.unit(for: camera.count))"
     }
 
@@ -155,13 +126,6 @@ struct ChallengeView: View {
                     .background(Color.black.ignoresSafeArea())
             }
 
-            // Bei App-Challenges davor noch das Ziel für diese Challenge festlegen.
-            if let kind = configuringGoal {
-                goalChooser(for: kind)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black.ignoresSafeArea())
-            }
-
             if finished {
                 completionOverlay
             }
@@ -169,8 +133,8 @@ struct ChallengeView: View {
         .preferredColorScheme(.dark)
         .keepScreenAwake()
         .onAppear {
-            // Freies Training und App-Challenges haben kein festes Ende – dort
-            // beendet der „Fertig“-Button die Zählung.
+            // Testläufe enden automatisch beim Ziel; freies Training und
+            // App-Challenges beendet der „Fertig“-Button.
             if !isFree && !isAppChallenge {
                 camera.onCompleted = {
                     finish()
@@ -266,7 +230,7 @@ struct ChallengeView: View {
                         .padding(.vertical, 11)
                         .background(Capsule().fill(.white.opacity(0.14)))
                 }
-            } else if !request.isBlocking {
+            } else {
                 Button {
                     leave(ticket: model.skipChallenge())
                 } label: {
@@ -278,102 +242,6 @@ struct ChallengeView: View {
                         .background(Capsule().fill(.white.opacity(0.14)))
                 }
                 .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen.")
-            } else {
-                Text("Notaus: 3 Sekunden halten")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.3))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .onLongPressGesture(minimumDuration: 3) {
-                        model.emergencyUnlockCurrent()
-                        dismiss()
-                    }
-            }
-        }
-        .padding(.vertical, 24)
-    }
-
-    /// Ziel für eine Sperre: freiwillig – weniger geht, mehr zählt auch.
-    private func goalChooser(for kind: ExerciseKind) -> some View {
-        VStack(spacing: 20) {
-            Spacer(minLength: 12)
-
-            VStack(spacing: 8) {
-                Text("DEIN ZIEL")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
-                    .tracking(4)
-                    .foregroundStyle(.white.opacity(0.6))
-
-                if let title = request.title {
-                    Text(title)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-            }
-
-            Spacer()
-
-            VStack(spacing: 2) {
-                Text("\(reps)")
-                    .font(.system(size: 84, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-                    .animation(.snappy, value: reps)
-                Text(kind.title)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-
-            HStack(spacing: 10) {
-                ForEach([-10, -5, 5, 10], id: \.self) { delta in
-                    Button {
-                        setGoal(reps + delta)
-                    } label: {
-                        Text(delta > 0 ? "+\(delta)" : "\(delta)")
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 62)
-                            .padding(.vertical, 11)
-                            .background(Capsule().fill(.white.opacity(0.14)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            VStack(spacing: 6) {
-                if request.isBlocking {
-                    Text("\(model.earnedMinutes(forReps: reps)) Min Bildschirmzeit")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
-                }
-                Text("Das Ziel ist nur eine Marke. Du kannst früher auf „Fertig“ drücken – oder weitermachen.")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-
-            Spacer()
-
-            Button {
-                chosenExercise = kind
-                configuringGoal = nil
-            } label: {
-                Text("Los")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 40)
-                    .padding(.vertical, 14)
-                    .background(Capsule().fill(Color(red: 0.45, green: 0.9, blue: 0.55)))
-            }
-
-            Button {
-                configuringGoal = nil
-                goal = nil
-            } label: {
-                Text("Zurück")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
             }
         }
         .padding(.vertical, 24)
@@ -394,21 +262,12 @@ struct ChallengeView: View {
                 .foregroundStyle(.white.opacity(0.6))
                 .monospacedDigit()
 
-            if !isTest {
-                Text("+ \(grantedMinutes) Min Bildschirmzeit")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
-                    .monospacedDigit()
-            }
-
             if let name = returnAppName {
                 Text("Zurück zu \(name) …")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             } else {
-                Text(request.isBlocking
-                     ? "Sperre aufgehoben"
-                     : (isFree ? "Im Verlauf eingetragen" : "Challenge beendet"))
+                Text(isFree ? "Im Verlauf eingetragen" : "Challenge beendet")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -442,11 +301,6 @@ struct ChallengeView: View {
                 Text(counterCaption)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.5))
-                if let reward = rewardMinutes {
-                    Text("+ \(reward) Min Bildschirmzeit")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
             }
         }
         .frame(width: 250, height: 250)
@@ -484,7 +338,7 @@ struct ChallengeView: View {
             }
 
             // Ausweg aus der Meldung: schließt die Zählung ohne Wiederholungen.
-            if !request.isBlocking && !isFree {
+            if !isFree {
                 Button {
                     leave(ticket: model.skipChallenge())
                 } label: {
@@ -513,9 +367,7 @@ struct ChallengeView: View {
                 }
                 .disabled(camera.count == 0)
                 .opacity(camera.count == 0 ? 0.5 : 1)
-                .accessibilityHint(request.isBlocking
-                                   ? "Beendet die Challenge und rechnet die gezählten Wiederholungen ab."
-                                   : "Beendet die Zählung und trägt die Wiederholungen im Verlauf ein.")
+                .accessibilityHint("Beendet die Zählung und trägt die Wiederholungen im Verlauf ein.")
             }
 
             HStack(spacing: 8) {
@@ -526,18 +378,6 @@ struct ChallengeView: View {
             .foregroundStyle(.white.opacity(0.45))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 32)
-
-            if request.isBlocking {
-                Text("Notaus: 3 Sekunden halten")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.3))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .onLongPressGesture(minimumDuration: 3) {
-                        model.emergencyUnlockCurrent()
-                        dismiss()
-                    }
-            }
         }
     }
 
@@ -611,42 +451,26 @@ struct ChallengeView: View {
     private func amountLabel(for kind: ExerciseKind) -> String {
         if isFree { return "Frei zählen, ohne Ziel" }
         let count = max(1, model.reps(for: kind))
-        let amount = "\(count) \(kind.unit(for: count))"
-        guard isAppChallenge else { return amount }
-        if request.isBlocking {
-            return "Ziel frei wählbar · \(model.earnedMinutes(forReps: count, exercise: kind)) Min"
-        }
-        return "Ziel frei wählbar"
+        return "\(count) \(kind.unit(for: count))"
     }
 
     /// Übung übernehmen (auch als neuen Standard) und die Zählung starten.
-    /// Bei einer Sperre wird davor noch das Ziel für diese Challenge gesetzt.
     private func choose(_ kind: ExerciseKind) {
         model.exercise = kind
-        if isAppChallenge {
-            goal = max(1, model.reps(for: kind))
-            configuringGoal = kind
-        } else {
-            chosenExercise = kind
-        }
-    }
-
-    /// Ziel für diese eine Challenge (1...500) – unabhängig vom Standard.
-    private func setGoal(_ value: Int) {
-        goal = min(500, max(1, value))
+        chosenExercise = kind
     }
 
     private func startCamera() {
         camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
-        // Sperren und freies Training zählen unbegrenzt weiter – das Ende
-        // bestimmt der „Fertig“-Button.
+        // Freies Training und App-Challenges zählen unbegrenzt weiter – das
+        // Ende bestimmt der „Fertig“-Button.
         camera.target = (isFree || isAppChallenge) ? .max : reps
         camera.start()
     }
 
     /// Zählung beendet: kurz bestätigen und dann zurück in die App.
-    /// - Parameter countedReps: Bei einer Sperre die tatsächlich geschafften
-    ///   Wiederholungen; ohne Angabe das Ziel.
+    /// - Parameter countedReps: Die tatsächlich geschafften Wiederholungen;
+    ///   ohne Angabe das Ziel.
     private func finish(countedReps: Int? = nil) {
         guard !finished else { return }
         finished = true
@@ -655,7 +479,7 @@ struct ChallengeView: View {
         let counted = countedReps ?? (camera.count > 0 ? camera.count : nil)
 
         Task { @MainActor in
-            // Kurz Zeit, die verdienten Minuten zu lesen.
+            // Kurz Zeit für die Bestätigung.
             try? await Task.sleep(for: .milliseconds(1600))
             leave(ticket: model.completeChallenge(reps: counted))
         }

@@ -33,8 +33,8 @@ struct StartChallengeIntent: AppIntent {
             if ShortcutBypass.isActive(for: appName) { return .result() }
         }
 
-        // Für den Kaltstart: Die Anfrage liegt in der App Group, bis die App
-        // sie beim Aktivieren übernimmt.
+        // Für den Kaltstart: Die Anfrage liegt im Speicher, bis die App sie
+        // beim Aktivieren übernimmt.
         PendingChallenge.set(appName: appName)
 
         guard systemContext.currentMode.canContinueInForeground else {

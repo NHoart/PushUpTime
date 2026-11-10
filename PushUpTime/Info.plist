@@ -36,7 +36,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>PushUpTime zählt deine Liegestütze über die Kamera, um gesperrte Apps wieder freizugeben.</string>
+	<string>PushUpTime zählt deine Liegestütze über die Kamera.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
