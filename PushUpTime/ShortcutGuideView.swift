@@ -49,7 +49,7 @@ struct ShortcutGuideView: View {
                 Label("PushUpTime: „Liegestütze starten“", systemImage: "arrow.up.forward.app")
                     .font(.headline)
 
-                Text("In der Automatisierung nach „PushUpTime“ suchen und die Aktion **„Liegestütze starten“** hinzufügen. Bei „App“ wählst du „\(rule.appName)“ aus.")
+                Text("In der Automatisierung nach „PushUpTime“ suchen und die Aktion **„Liegestütze starten“** hinzufügen. Bei „App“ wählst du „\(rule.appName)“ aus – das Feld ist Pflicht, sonst weiß PushUpTime nicht, wohin es zurückspringen soll.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
 

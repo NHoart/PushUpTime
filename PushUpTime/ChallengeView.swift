@@ -198,6 +198,16 @@ struct ChallengeView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
 
+            // Ohne App-Namen gibt es keinen Rücksprung-Link – das liegt an der
+            // Automatisierung, nicht an der Challenge.
+            if isAppChallenge && request.title == nil {
+                Text("Keine App verknüpft: In Shortcuts bei „App“ deine App auswählen – sonst gibt es keinen Rücksprung.")
+                    .font(.caption)
+                    .foregroundStyle(.orange.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+
             VStack(spacing: 14) {
                 ForEach(ExerciseKind.allCases) { kind in
                     Button {
@@ -376,6 +386,10 @@ struct ChallengeView: View {
 
             if let name = returnAppName {
                 Text("Zurück zu \(name) …")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            } else if case .shortcut(.some) = request.kind {
+                Text("Kein Rücksprung-Link hinterlegt")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             } else {
