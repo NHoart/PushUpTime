@@ -206,6 +206,30 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: - Manuelles Tracking
+
+    /// Trägt eine Einheit von Hand in den Verlauf ein – ohne Kamera-Challenge.
+    func trackExercise(_ kind: ExerciseKind, reps: Int, date: Date = Date()) {
+        history = ChallengeLog.record(
+            reps: max(1, reps),
+            appName: nil,
+            exercise: kind,
+            date: date,
+            source: .manual
+        )
+    }
+
+    func deleteRecord(_ record: ChallengeRecord) {
+        history = ChallengeLog.delete(id: record.id)
+    }
+
+    /// Heute eingetragene Wiederholungen einer Übung.
+    func todayReps(for kind: ExerciseKind) -> Int {
+        history
+            .filter { $0.exerciseKind == kind && Calendar.current.isDateInToday($0.date) }
+            .reduce(0) { $0 + $1.reps }
+    }
+
     // MARK: - Statistik
 
     var stats: ChallengeStats {

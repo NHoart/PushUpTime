@@ -1,5 +1,13 @@
 import Foundation
 
+/// Wie eine Einheit zustande gekommen ist.
+enum RecordSource: String, Codable {
+    /// Über die Challenge mit Kamera-Zählung.
+    case challenge
+    /// Von Hand eingetragen, z. B. beim Training ohne iPhone-Halterung.
+    case manual
+}
+
 /// Eine abgeschlossene Challenge – Grundlage für die kleine Statistik.
 struct ChallengeRecord: Codable, Identifiable, Equatable {
     var id: UUID
@@ -9,20 +17,27 @@ struct ChallengeRecord: Codable, Identifiable, Equatable {
     var appName: String?
     /// nil bei alten Einträgen – die entstanden vor den Russian Twists.
     var exercise: ExerciseKind?
+    /// nil bei alten Einträgen – die entstanden alle über die Challenge.
+    var source: RecordSource?
 
     init(id: UUID = UUID(),
          date: Date = Date(),
          reps: Int,
          appName: String? = nil,
-         exercise: ExerciseKind? = nil) {
+         exercise: ExerciseKind? = nil,
+         source: RecordSource? = nil) {
         self.id = id
         self.date = date
         self.reps = reps
         self.appName = appName
         self.exercise = exercise
+        self.source = source
     }
 
     var exerciseKind: ExerciseKind { exercise ?? .pushUps }
+
+    /// Von Hand eingetragen statt per Kamera gezählt.
+    var isManual: Bool { source == .manual }
 
     /// „30 Liegestütze“ / „220 Russian Twists“.
     var amountLabel: String {
@@ -58,24 +73,39 @@ enum ChallengeLog {
         return records.sorted { $0.date > $1.date }
     }
 
-    /// Legt eine abgeschlossene Challenge ab und gibt den neuen Verlauf zurück.
+    /// Legt eine abgeschlossene Einheit ab und gibt den neuen Verlauf zurück.
     @discardableResult
     static func record(reps: Int,
                        appName: String?,
                        exercise: ExerciseKind,
-                       date: Date = Date()) -> [ChallengeRecord] {
+                       date: Date = Date(),
+                       source: RecordSource = .challenge) -> [ChallengeRecord] {
         var all = load()
-        all.insert(
-            ChallengeRecord(date: date, reps: reps, appName: appName, exercise: exercise),
-            at: 0
+        all.append(
+            ChallengeRecord(date: date, reps: reps, appName: appName, exercise: exercise, source: source)
         )
+        // Nachträglich eingetragene Einheiten können älter sein – daher sortieren.
+        all.sort { $0.date > $1.date }
         if all.count > limit {
             all.removeLast(all.count - limit)
         }
-        if let data = try? JSONEncoder().encode(all) {
+        save(all)
+        return all
+    }
+
+    /// Entfernt einen Eintrag, z. B. ein versehentlich eingetragenes Training.
+    @discardableResult
+    static func delete(id: UUID) -> [ChallengeRecord] {
+        var all = load()
+        all.removeAll { $0.id == id }
+        save(all)
+        return all
+    }
+
+    private static func save(_ records: [ChallengeRecord]) {
+        if let data = try? JSONEncoder().encode(records) {
             SharedConfig.defaults.set(data, forKey: key)
         }
-        return all
     }
 
     static func summary(

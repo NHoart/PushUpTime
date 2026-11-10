@@ -6,6 +6,7 @@ struct RootView: View {
     @State private var showAddRule = false
     @State private var newRuleName = ""
     @State private var showSettings = false
+    @State private var showTrackExercise = false
 
     var body: some View {
         NavigationStack {
@@ -13,6 +14,8 @@ struct RootView: View {
                 introSection
                 appsSection
                 challengeSection
+                trackingSection
+                historySection
                 statsSection
                 advancedSection
             }
@@ -37,6 +40,10 @@ struct RootView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+                    .environmentObject(model)
+            }
+            .sheet(isPresented: $showTrackExercise) {
+                TrackExerciseView()
                     .environmentObject(model)
             }
             .fullScreenCover(item: $model.challenge) { request in
@@ -155,6 +162,77 @@ struct RootView: View {
             } label: {
                 Label("\(model.exercise.title) zählen testen", systemImage: "camera.viewfinder")
             }
+        }
+    }
+
+    private var trackingSection: some View {
+        Section {
+            Button {
+                showTrackExercise = true
+            } label: {
+                Label("Übung eintragen", systemImage: "plus.circle.fill")
+            }
+
+            ForEach(ExerciseKind.allCases) { kind in
+                let today = model.todayReps(for: kind)
+                if today > 0 {
+                    HStack {
+                        Label(kind.title, systemImage: kind.icon)
+                        Spacer()
+                        Text("\(today) \(kind.unit(for: today))")
+                            .monospacedDigit()
+                            .foregroundStyle(.green)
+                    }
+                }
+            }
+        } header: {
+            Text("Training")
+        } footer: {
+            Text("Trägt eine Einheit von Hand ein – ohne Kamera und ohne Challenge. Sie zählt in Verlauf, Statistik und Streak.")
+        }
+    }
+
+    private var historySection: some View {
+        Section {
+            if model.history.isEmpty {
+                Text("Noch keine Einheit eingetragen.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(model.history.prefix(8)) { record in
+                    HStack(spacing: 12) {
+                        Image(systemName: record.exerciseKind.icon)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(record.amountLabel)
+                                .monospacedDigit()
+                            Text(record.appName ?? record.shortLabel)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        if record.isManual {
+                            Text("manuell")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            model.deleteRecord(record)
+                        } label: {
+                            Label("Löschen", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Verlauf")
+        } footer: {
+            Text("Die letzten acht Einheiten – Challenges und von Hand eingetragene. Zum Löschen nach links wischen.")
         }
     }
 

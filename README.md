@@ -59,8 +59,14 @@ wird nichts – die Disziplin bleibt bei dir.
 - **Rücksprung in die Ziel-App:** Nach den Liegestützen öffnet PushUpTime die App
   über ihr URL-Schema (z. B. `instagram://`). Ein kurzer Launch-Pass sorgt dafür,
   dass die Automatisierung dabei nicht sofort wieder PushUpTime nach vorn holt.
+- **Übungen von Hand tracken:** „Übung eintragen“ auf dem Startbildschirm legt
+  eine Einheit ohne Kamera ab – Übung, Anzahl und Zeitpunkt frei wählbar. Sie
+  zählt wie eine Challenge in Verlauf, Statistik und Streak; die Tages-Summen je
+  Übung stehen direkt daneben.
 - **Kleine Statistik:** wie viele Challenges heute erledigt wurden, Streak über
   aufeinanderfolgende Tage und die letzte Einheit (Zeitpunkt, App, Anzahl).
+- **Verlauf der letzten acht Einheiten:** Challenges und manuelle Einträge; zum
+  Löschen nach links wischen.
 - **Bildschirmzeit-Sperren (optional):** Auswahl über den System-`FamilyActivityPicker`,
   eigenes Zeitbudget pro Sperre (Standard 10 Minuten), Sperrbildschirm aus der
   Shield-Erweiterung, mehrere Sperren parallel.
