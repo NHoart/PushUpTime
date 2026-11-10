@@ -47,6 +47,9 @@ wird nichts – die Disziplin bleibt bei dir.
   220). Die Auswahl ist der Standard; wird die App aus einer App wie Instagram
   heraus geöffnet, fragt die Challenge zuerst „Was machst du?“ und du
   entscheidest dich in dem Moment. Die Anzahl lässt sich pro Übung einstellen.
+- **Bildschirm bleibt an:** Solange die Challenge offen ist, sperrt iOS den
+  Bildschirm nicht automatisch – beim Verlassen des Screens gilt wieder die
+  normale Auto-Sperre.
 - **Wiederholungen zählen per Kamera:** Vision-Body-Pose erkennt echte
   Liegestütze (Ellbogen unten ≤ 105°, danach gestreckt ≥ 148°) und zählt bei
   Russian Twists jeden Twist zur Seite, sobald die Hände seitlich am Becken

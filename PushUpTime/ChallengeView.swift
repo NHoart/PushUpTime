@@ -103,6 +103,7 @@ struct ChallengeView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .keepScreenAwake()
         .onAppear {
             camera.onCompleted = {
                 finish()
@@ -427,6 +428,34 @@ struct ChallengeView: View {
                 }
             }
         }
+    }
+}
+
+/// Hält die automatische Bildschirmsperre an, solange die Challenge offen ist.
+/// Wer in Position liegt, kann nicht alle 30 Sekunden das iPhone entsperren.
+private struct KeepScreenAwake: ViewModifier {
+    @Environment(\.scenePhase) private var scenePhase
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { setScreenAwake(true) }
+            .onDisappear { setScreenAwake(false) }
+            .onChange(of: scenePhase) { _, phase in
+                // Im Hintergrund hält iOS die Sperre ohnehin an; beim Zurückkommen
+                // (Kamera-App, Anruf, App-Wechsel) wieder aktivieren.
+                setScreenAwake(phase == .active)
+            }
+    }
+
+    private func setScreenAwake(_ awake: Bool) {
+        guard UIApplication.shared.isIdleTimerDisabled != awake else { return }
+        UIApplication.shared.isIdleTimerDisabled = awake
+    }
+}
+
+extension View {
+    func keepScreenAwake() -> some View {
+        modifier(KeepScreenAwake())
     }
 }
 

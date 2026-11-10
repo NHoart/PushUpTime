@@ -91,9 +91,13 @@ final class AppModel: ObservableObject {
         // sobald die App im Vordergrund ist.
         challengeObserver = NotificationCenter.default
             .publisher(for: .pushUpTimeChallengeRequested)
-            .sink { _ in
-                Task { @MainActor [weak self] in
-                    self?.consumePendingChallenge()
+            .sink { [weak self] _ in
+                // Schwache Referenz einmal auflösen und den Wert in den Task
+                // reichen – sonst nimmt Swift für die äußere Closure
+                // unbemerkt eine starke `self`-Referenz auf.
+                guard let model = self else { return }
+                Task { @MainActor in
+                    model.consumePendingChallenge()
                 }
             }
     }
