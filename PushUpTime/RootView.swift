@@ -166,12 +166,6 @@ struct RootView: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
-
-            Button {
-                model.startTestChallenge()
-            } label: {
-                Label("\(model.exercise.title) zählen testen", systemImage: "camera.viewfinder")
-            }
         }
     }
 

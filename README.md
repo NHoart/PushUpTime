@@ -79,11 +79,13 @@ wird nichts – die Disziplin bleibt bei dir.
   unter „Bildschirmzeit-Belohnung“ für Liegestütze und Russian Twists getrennt
   einstellen; die Minuten pro Sperre gelten nur für die erste Runde und werden
   danach durch die verdienten Minuten ersetzt.
-- **Frei zählen bei Sperren:** Bei einer Bildschirmzeit-Sperre legst du vor jeder
-  Challenge neu ein Ziel fest (voreingestellt ist dein Standard). Dieses Ziel ist
-  nur eine Marke: Du kannst früher auf **„Fertig“** drücken oder über das Ziel
-  hinaus weitermachen. Abgerechnet wird, was die Kamera tatsächlich gezählt hat –
-  Mindestlohn ist eine Minute, damit sich jede Challenge lohnt.
+- **Frei zählen bei App-Challenges:** Egal ob Bildschirmzeit-Sperre oder
+  Shortcuts-Aufruf – vor jeder Challenge legst du neu ein Ziel fest
+  (voreingestellt ist dein Standard). Dieses Ziel ist nur eine Marke: Du kannst
+  früher auf **„Fertig“** drücken oder über das Ziel hinaus weitermachen.
+  Abgerechnet wird, was die Kamera tatsächlich gezählt hat (bei Sperren als
+  Bildschirmzeit, mindestens eine Minute). Beim Testlauf und beim freien Training
+  bleibt es beim automatischen Ende bzw. der freien Zählung.
 
 ## Bauen
 

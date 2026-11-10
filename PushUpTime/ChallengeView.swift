@@ -33,6 +33,15 @@ struct ChallengeView: View {
         return false
     }
 
+    /// Von einer App ausgelöst (Bildschirmzeit-Sperre oder Shortcuts-Aufruf):
+    /// Ziel vorab festlegen, frei zählen und selbst über „Fertig“ beenden.
+    private var isAppChallenge: Bool {
+        switch request.kind {
+        case .screenTime, .shortcut: return true
+        case .test, .free: return false
+        }
+    }
+
     private var statusLabel: String {
         switch request.kind {
         case .test: return "TESTLAUF"
@@ -65,7 +74,7 @@ struct ChallengeView: View {
     /// Beschriftung unter dem Zähler.
     private var counterCaption: String {
         if isFree { return "Wiederholungen" }
-        if request.isBlocking { return "Ziel \(reps)" }
+        if isAppChallenge { return "Ziel \(reps)" }
         return "von \(reps)"
     }
 
@@ -139,7 +148,7 @@ struct ChallengeView: View {
                     .background(Color.black.ignoresSafeArea())
             }
 
-            // Bei einer Sperre davor noch das Ziel für diese Challenge festlegen.
+            // Bei App-Challenges davor noch das Ziel für diese Challenge festlegen.
             if let kind = configuringGoal {
                 goalChooser(for: kind)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -153,9 +162,9 @@ struct ChallengeView: View {
         .preferredColorScheme(.dark)
         .keepScreenAwake()
         .onAppear {
-            // Freies Training und Sperren haben kein festes Ende – dort beendet
-            // der „Fertig“-Button die Zählung.
-            if !isFree && !request.isBlocking {
+            // Freies Training und App-Challenges haben kein festes Ende – dort
+            // beendet der „Fertig“-Button die Zählung.
+            if !isFree && !isAppChallenge {
                 camera.onCompleted = {
                     finish()
                 }
@@ -325,10 +334,12 @@ struct ChallengeView: View {
             }
 
             VStack(spacing: 6) {
-                Text("\(model.earnedMinutes(forReps: reps)) Min Bildschirmzeit")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
-                Text("Das Ziel ist nur eine Marke. Du kannst früher auf „Fertig“ drücken – oder weitermachen, jede Wiederholung bringt Zeit.")
+                if request.isBlocking {
+                    Text("\(model.earnedMinutes(forReps: reps)) Min Bildschirmzeit")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
+                }
+                Text("Das Ziel ist nur eine Marke. Du kannst früher auf „Fertig“ drücken – oder weitermachen.")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
                     .multilineTextAlignment(.center)
@@ -468,9 +479,9 @@ struct ChallengeView: View {
                 .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen.")
             }
 
-            // Freies Training und Sperre: so viele Wiederholungen wie geschafft,
-            // dann selbst über „Fertig“ beenden.
-            if isFree || request.isBlocking {
+            // Freies Training und App-Challenge: so viele Wiederholungen wie
+            // geschafft, dann selbst über „Fertig“ beenden.
+            if isFree || isAppChallenge {
                 Button {
                     finish(countedReps: camera.count)
                 } label: {
@@ -512,7 +523,7 @@ struct ChallengeView: View {
     }
 
     private var hintText: String {
-        if request.isBlocking && camera.count >= reps {
+        if isAppChallenge && camera.count >= reps {
             return "Ziel erreicht 🎉 Fertig drücken oder weiterzählen"
         }
         return hint
@@ -582,15 +593,18 @@ struct ChallengeView: View {
         if isFree { return "Frei zählen, ohne Ziel" }
         let count = max(1, model.reps(for: kind))
         let amount = "\(count) \(kind.unit(for: count))"
-        guard request.isBlocking else { return amount }
-        return "Ziel frei wählbar · \(model.earnedMinutes(forReps: count, exercise: kind)) Min"
+        guard isAppChallenge else { return amount }
+        if request.isBlocking {
+            return "Ziel frei wählbar · \(model.earnedMinutes(forReps: count, exercise: kind)) Min"
+        }
+        return "Ziel frei wählbar"
     }
 
     /// Übung übernehmen (auch als neuen Standard) und die Zählung starten.
     /// Bei einer Sperre wird davor noch das Ziel für diese Challenge gesetzt.
     private func choose(_ kind: ExerciseKind) {
         model.exercise = kind
-        if request.isBlocking {
+        if isAppChallenge {
             goal = max(1, model.reps(for: kind))
             configuringGoal = kind
         } else {
@@ -607,7 +621,7 @@ struct ChallengeView: View {
         camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
         // Sperren und freies Training zählen unbegrenzt weiter – das Ende
         // bestimmt der „Fertig“-Button.
-        camera.target = (isFree || request.isBlocking) ? .max : reps
+        camera.target = (isFree || isAppChallenge) ? .max : reps
         camera.start()
     }
 
