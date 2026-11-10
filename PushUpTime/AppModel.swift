@@ -184,10 +184,13 @@ final class AppModel: ObservableObject {
         challenge = ChallengeRequest(kind: .test)
     }
 
-    /// Anzahl für die gerade gewählte Übung.
-    var requiredReps: Int {
-        exercise == .pushUps ? pushUpReps : twistReps
+    /// Anzahl für eine Übung.
+    func reps(for kind: ExerciseKind) -> Int {
+        kind == .pushUps ? pushUpReps : twistReps
     }
+
+    /// Anzahl für die gerade gewählte Übung.
+    var requiredReps: Int { reps(for: exercise) }
 
     /// Setzt die Anzahl der gerade gewählten Übung.
     func setReps(_ value: Int) {

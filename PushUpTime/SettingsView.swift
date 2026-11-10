@@ -36,7 +36,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Challenge")
                 } footer: {
-                    Text("Die gewählte Übung gilt für alle Challenges – Shortcut-Aufrufe und Bildschirmzeit-Sperren. Standard: 30 Liegestütze oder 220 Russian Twists.")
+                    Text("Die gewählte Übung ist der Standard für Shortcut-Aufrufe und Bildschirmzeit-Sperren. Wenn dich eine App wie Instagram hierher schickt, kannst du die Übung vor der Zählung trotzdem noch wechseln. Standard: 30 Liegestütze oder 220 Russian Twists.")
                 }
 
                 Section {

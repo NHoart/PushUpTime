@@ -10,11 +10,14 @@ struct ChallengeView: View {
     /// Die Challenge ist erledigt – die Bestätigung läuft, danach der Rücksprung.
     @State private var finished = false
 
+    /// Noch nichts gewählt = Übungsauswahl wird angezeigt.
+    @State private var chosenExercise: ExerciseKind?
+
     /// Test, Shortcuts-Aufruf oder echte Bildschirmzeit-Sperre.
     let request: AppModel.ChallengeRequest
 
-    private var exercise: ExerciseKind { model.exercise }
-    private var reps: Int { max(1, model.requiredReps) }
+    private var exercise: ExerciseKind { chosenExercise ?? model.exercise }
+    private var reps: Int { max(1, model.reps(for: exercise)) }
     private var remaining: Int { max(0, reps - camera.count) }
 
     private var statusLabel: String {
@@ -88,18 +91,29 @@ struct ChallengeView: View {
             }
             .padding(.vertical, 24)
 
+            // Erst die Übung wählen, dann zählt die Kamera.
+            if chosenExercise == nil {
+                exerciseChooser
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.ignoresSafeArea())
+            }
+
             if finished {
                 completionOverlay
             }
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
-            camera.target = reps
             camera.onCompleted = {
                 finish()
             }
-            camera.start()
+            if chosenExercise != nil {
+                startCamera()
+            }
+        }
+        .onChange(of: chosenExercise) { _, value in
+            guard value != nil else { return }
+            startCamera()
         }
         .onDisappear {
             camera.stop()
@@ -107,6 +121,96 @@ struct ChallengeView: View {
     }
 
     // MARK: - Views
+
+    /// Auswahl direkt beim Weiterleiten aus einer App: Liegestütze oder Russian Twists.
+    private var exerciseChooser: some View {
+        VStack(spacing: 24) {
+            Spacer(minLength: 12)
+
+            VStack(spacing: 8) {
+                Text("DEINE CHALLENGE")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .tracking(4)
+                    .foregroundStyle(.white.opacity(0.6))
+
+                if let title = request.title {
+                    Text(title)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            Text("Was machst du?")
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+
+            VStack(spacing: 14) {
+                ForEach(ExerciseKind.allCases) { kind in
+                    Button {
+                        choose(kind)
+                    } label: {
+                        HStack(spacing: 16) {
+                            Image(systemName: kind.icon)
+                                .font(.system(size: 26, weight: .semibold))
+                                .frame(width: 34)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(kind.title)
+                                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                                Text(amountLabel(for: kind))
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.white.opacity(0.6))
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(.white.opacity(0.12))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+
+            if !request.isBlocking {
+                Button {
+                    leave(ticket: model.skipChallenge())
+                } label: {
+                    Text("Überspringen")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(.white.opacity(0.14)))
+                }
+                .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen.")
+            } else {
+                Text("Notaus: 3 Sekunden halten")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.3))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .onLongPressGesture(minimumDuration: 3) {
+                        model.emergencyUnlockCurrent()
+                        dismiss()
+                    }
+            }
+        }
+        .padding(.vertical, 24)
+    }
 
     private var completionOverlay: some View {
         VStack(spacing: 14) {
@@ -278,6 +382,23 @@ struct ChallengeView: View {
         case .searching, .center:
             return .white.opacity(0.6)
         }
+    }
+
+    private func amountLabel(for kind: ExerciseKind) -> String {
+        let count = max(1, model.reps(for: kind))
+        return "\(count) \(kind.unit(for: count))"
+    }
+
+    /// Übung übernehmen (auch als neuen Standard) und die Zählung starten.
+    private func choose(_ kind: ExerciseKind) {
+        model.exercise = kind
+        chosenExercise = kind
+    }
+
+    private func startCamera() {
+        camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
+        camera.target = reps
+        camera.start()
     }
 
     /// Zählung abgeschlossen: kurz bestätigen und dann zurück in die App.
