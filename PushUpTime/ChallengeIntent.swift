@@ -16,23 +16,26 @@ struct StartChallengeIntent: AppIntent {
     )
     static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
-    /// Pflichtfeld: Ohne App weiß PushUpTime nicht, wohin es zurückspringen
-    /// soll – dann gäbe es nach der Challenge keinen Rücksprung.
+    /// Optional, damit eine Automatisierung ohne Auswahl nicht bei jedem
+    /// App-Wechsel nach einem Wert fragt. Fehlt die App, zeigt die Challenge
+    /// einen Hinweis – einen Rücksprung gibt es dann nicht.
     @Parameter(title: "App")
-    var app: TrackedAppEntity
+    var app: TrackedAppEntity?
 
     static var parameterSummary: some ParameterSummary {
         Summary("Liegestütze für \(\.$app) starten")
     }
 
     func perform() async throws -> some IntentResult {
-        let appName = app.resolvedAppName
-        guard !appName.isEmpty else { throw MissingTrackedAppError() }
+        let resolved = app?.resolvedAppName
+        let appName = (resolved?.isEmpty == false) ? resolved : nil
 
-        // Frisch freigegeben: still bleiben, damit der Rücksprung nicht
-        // sofort wieder von der Automatisierung unterbrochen wird.
-        if LaunchPass.consume(for: appName) { return .result() }
-        if ShortcutBypass.isActive(for: appName) { return .result() }
+        if let appName {
+            // Frisch freigegeben: still bleiben, damit der Rücksprung nicht
+            // sofort wieder von der Automatisierung unterbrochen wird.
+            if LaunchPass.consume(for: appName) { return .result() }
+            if ShortcutBypass.isActive(for: appName) { return .result() }
+        }
 
         // Für den Kaltstart: Die Anfrage liegt im Speicher, bis die App sie
         // beim Aktivieren übernimmt.
@@ -54,15 +57,6 @@ struct StartChallengeIntent: AppIntent {
             NotificationCenter.default.post(name: .pushUpTimeChallengeRequested, object: nil)
         }
         return .result()
-    }
-}
-
-/// Pflichtfeld leer: lieber sichtbar abbrechen, als still ohne
-/// Rücksprung-Link weiterzulaufen.
-@available(iOS 26.0, *)
-struct MissingTrackedAppError: Error, CustomLocalizedStringResourceConvertible {
-    var localizedStringResource: LocalizedStringResource {
-        "Bitte bei „App“ eine App aus PushUpTime auswählen."
     }
 }
 
