@@ -6,6 +6,9 @@ enum SharedConfig {
     static let twistRepsKey = "requiredTwistReps.v1"
     static let exerciseKey = "exerciseKind.v1"
     static let bypassKey = "shortcutBypassMinutes.v1"
+    static let rewardRateKey = "repsPerMinute.v1"
+    static let pushUpRateKey = "repsPerMinute.pushUps.v1"
+    static let twistRateKey = "repsPerMinute.russianTwists.v1"
 
     /// App und App-Intent laufen im selben Prozess und teilen diesen Speicher.
     static var defaults: UserDefaults { .standard }
@@ -92,8 +95,26 @@ enum SharedStore {
         SharedConfig.defaults.set(max(1, value), forKey: key(for: kind))
     }
 
-    /// Anzahl für die aktuell gewählte Übung (z. B. für den Sperrbildschirm).
+    /// Anzahl für die aktuell gewählte Übung (z. B. für die Shortcut-Anleitung).
     static var requiredReps: Int { reps(for: exercise) }
+
+    /// Wie viele Wiederholungen einer Übung eine Minute Pause einbringen
+    /// (Standard 2 – pro Übung einstellbar).
+    static func repsPerMinute(for kind: ExerciseKind) -> Int {
+        let key = rateKey(for: kind)
+        if SharedConfig.defaults.object(forKey: key) != nil {
+            return max(1, SharedConfig.defaults.integer(forKey: key))
+        }
+        // Früher galt ein gemeinsamer Wert für beide Übungen – den übernehmen.
+        if SharedConfig.defaults.object(forKey: SharedConfig.rewardRateKey) != nil {
+            return max(1, SharedConfig.defaults.integer(forKey: SharedConfig.rewardRateKey))
+        }
+        return 2
+    }
+
+    static func setRepsPerMinute(_ value: Int, for kind: ExerciseKind) {
+        SharedConfig.defaults.set(max(1, value), forKey: rateKey(for: kind))
+    }
 
     /// Minuten, die eine übersprungene App freibleibt (Standard 10, 0 = keine Pause).
     static var bypassMinutes: Int {
@@ -108,6 +129,13 @@ enum SharedStore {
         switch kind {
         case .pushUps: return SharedConfig.repsKey
         case .russianTwists: return SharedConfig.twistRepsKey
+        }
+    }
+
+    private static func rateKey(for kind: ExerciseKind) -> String {
+        switch kind {
+        case .pushUps: return SharedConfig.pushUpRateKey
+        case .russianTwists: return SharedConfig.twistRateKey
         }
     }
 }

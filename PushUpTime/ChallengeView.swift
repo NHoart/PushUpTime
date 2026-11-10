@@ -13,12 +13,18 @@ struct ChallengeView: View {
     /// Noch nichts gewählt = Übungsauswahl wird angezeigt.
     @State private var chosenExercise: ExerciseKind?
 
+    /// Ziel für genau diese Challenge – freiwillig und frei wählbar.
+    @State private var goal: Int?
+
+    /// Übung, für die gerade das Ziel eingestellt wird.
+    @State private var configuringGoal: ExerciseKind?
+
     /// Test, freies Training oder Shortcuts-Aufruf.
     let request: AppModel.ChallengeRequest
 
     private var exercise: ExerciseKind { chosenExercise ?? model.exercise }
-    /// Ziel der Challenge: der Standard der gewählten Übung.
-    private var reps: Int { max(1, model.reps(for: exercise)) }
+    /// Ziel der Challenge: das selbst gesetzte, sonst der Standard (1...500).
+    private var reps: Int { ChallengeRules.clampGoal(goal ?? model.reps(for: exercise)) }
 
     /// Freies Training: keine App, kein Ziel – eingetragen wird, was gezählt wurde.
     private var isFree: Bool {
@@ -41,7 +47,13 @@ struct ChallengeView: View {
     }
 
     /// Am Ende gezählte Wiederholungen (das Ziel, falls nichts gezählt wurde).
-    private var countedReps: Int { max(1, camera.count > 0 ? camera.count : reps) }
+    private var countedReps: Int { ChallengeRules.countedReps(cameraCount: camera.count, goal: reps) }
+
+    /// Pause, die am Ende für die Ziel-App gilt (nur bei einer App-Challenge).
+    private var grantedMinutes: Int? {
+        guard case .shortcut(.some) = request.kind else { return nil }
+        return model.earnedMinutes(forReps: countedReps, exercise: exercise)
+    }
 
     /// Beschriftung des grünen Abschluss-Buttons.
     private var finishLabel: String {
@@ -122,6 +134,13 @@ struct ChallengeView: View {
             // Erst die Übung wählen, dann zählt die Kamera.
             if chosenExercise == nil {
                 exerciseChooser
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.ignoresSafeArea())
+            }
+
+            // Bei App-Challenges davor noch das Ziel für diese Challenge festlegen.
+            if let kind = configuringGoal {
+                goalChooser(for: kind)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.black.ignoresSafeArea())
             }
@@ -247,6 +266,92 @@ struct ChallengeView: View {
         .padding(.vertical, 24)
     }
 
+    /// Ziel für die Challenge: freiwillig – weniger geht, mehr zählt auch.
+    private func goalChooser(for kind: ExerciseKind) -> some View {
+        VStack(spacing: 20) {
+            Spacer(minLength: 12)
+
+            VStack(spacing: 8) {
+                Text("DEIN ZIEL")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .tracking(4)
+                    .foregroundStyle(.white.opacity(0.6))
+
+                if let title = request.title {
+                    Text(title)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            Spacer()
+
+            VStack(spacing: 2) {
+                Text("\(reps)")
+                    .font(.system(size: 84, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: reps)
+                Text(kind.title)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+
+            HStack(spacing: 10) {
+                ForEach([-10, -5, 5, 10], id: \.self) { delta in
+                    Button {
+                        setGoal(reps + delta)
+                    } label: {
+                        Text(delta > 0 ? "+\(delta)" : "\(delta)")
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .frame(minWidth: 62)
+                            .padding(.vertical, 11)
+                            .background(Capsule().fill(.white.opacity(0.14)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            VStack(spacing: 6) {
+                if request.title != nil {
+                    Text("\(model.earnedMinutes(forReps: reps, exercise: kind)) Min Pause")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
+                }
+                Text("Das Ziel ist nur eine Marke. Du kannst früher auf „Fertig“ drücken – oder weitermachen.")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+
+            Spacer()
+
+            Button {
+                chosenExercise = kind
+                configuringGoal = nil
+            } label: {
+                Text("Los")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 40)
+                    .padding(.vertical, 14)
+                    .background(Capsule().fill(Color(red: 0.45, green: 0.9, blue: 0.55)))
+            }
+
+            Button {
+                configuringGoal = nil
+                goal = nil
+            } label: {
+                Text("Zurück")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .padding(.vertical, 24)
+    }
+
     private var completionOverlay: some View {
         VStack(spacing: 14) {
             Image(systemName: "checkmark.circle.fill")
@@ -261,6 +366,13 @@ struct ChallengeView: View {
                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.6))
                 .monospacedDigit()
+
+            if let minutes = grantedMinutes {
+                Text("+ \(minutes) Min Pause")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color(red: 0.45, green: 0.9, blue: 0.55))
+                    .monospacedDigit()
+            }
 
             if let name = returnAppName {
                 Text("Zurück zu \(name) …")
@@ -451,20 +563,35 @@ struct ChallengeView: View {
     private func amountLabel(for kind: ExerciseKind) -> String {
         if isFree { return "Frei zählen, ohne Ziel" }
         let count = max(1, model.reps(for: kind))
-        return "\(count) \(kind.unit(for: count))"
+        guard isAppChallenge else { return "\(count) \(kind.unit(for: count))" }
+        if request.title != nil {
+            return "Ziel frei wählbar · \(model.earnedMinutes(forReps: count, exercise: kind)) Min"
+        }
+        return "Ziel frei wählbar"
     }
 
     /// Übung übernehmen (auch als neuen Standard) und die Zählung starten.
+    /// Bei einer App-Challenge wird davor noch das Ziel für diese Challenge gesetzt.
     private func choose(_ kind: ExerciseKind) {
         model.exercise = kind
-        chosenExercise = kind
+        if isAppChallenge {
+            goal = ChallengeRules.initialGoal(standardReps: model.reps(for: kind))
+            configuringGoal = kind
+        } else {
+            chosenExercise = kind
+        }
+    }
+
+    /// Ziel für diese eine Challenge (1...500) – unabhängig vom Standard.
+    private func setGoal(_ value: Int) {
+        goal = ChallengeRules.clampGoal(value)
     }
 
     private func startCamera() {
         camera.mode = exercise == .russianTwists ? .russianTwists : .pushUps
         // Freies Training und App-Challenges zählen unbegrenzt weiter – das
         // Ende bestimmt der „Fertig“-Button.
-        camera.target = (isFree || isAppChallenge) ? .max : reps
+        camera.target = ChallengeRules.cameraTarget(isFree: isFree, isAppChallenge: isAppChallenge, goal: reps)
         camera.start()
     }
 

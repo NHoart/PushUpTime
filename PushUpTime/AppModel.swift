@@ -23,6 +23,10 @@ final class AppModel: ObservableObject {
         let id = UUID()
         let kind: Kind
 
+        init(kind: Kind) {
+            self.kind = kind
+        }
+
         var title: String? {
             switch kind {
             case .test, .free:
@@ -49,6 +53,14 @@ final class AppModel: ObservableObject {
     @Published var bypassMinutes: Int = 10 {
         didSet { SharedStore.bypassMinutes = bypassMinutes }
     }
+    /// Wie viele Liegestütze eine Minute Pause einbringen.
+    @Published var pushUpRepsPerMinute: Int = 2 {
+        didSet { SharedStore.setRepsPerMinute(pushUpRepsPerMinute, for: .pushUps) }
+    }
+    /// Wie viele Russian Twists eine Minute Pause einbringen.
+    @Published var twistRepsPerMinute: Int = 2 {
+        didSet { SharedStore.setRepsPerMinute(twistRepsPerMinute, for: .russianTwists) }
+    }
     @Published var challenge: ChallengeRequest?
     @Published var errorMessage: String?
 
@@ -61,6 +73,8 @@ final class AppModel: ObservableObject {
         pushUpReps = SharedStore.reps(for: .pushUps)
         twistReps = SharedStore.reps(for: .russianTwists)
         bypassMinutes = SharedStore.bypassMinutes
+        pushUpRepsPerMinute = SharedStore.repsPerMinute(for: .pushUps)
+        twistRepsPerMinute = SharedStore.repsPerMinute(for: .russianTwists)
 
         // Der Shortcuts-Intent läuft im selben Prozess und meldet sich hier,
         // sobald die App im Vordergrund ist.
@@ -187,6 +201,29 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Wie viele Wiederholungen einer Übung eine Minute Pause einbringen.
+    func repsPerMinute(for kind: ExerciseKind) -> Int {
+        kind == .pushUps ? pushUpRepsPerMinute : twistRepsPerMinute
+    }
+
+    /// Rate der gerade gewählten Übung.
+    var repsPerMinute: Int { repsPerMinute(for: exercise) }
+
+    func setRepsPerMinute(_ value: Int, for kind: ExerciseKind) {
+        switch kind {
+        case .pushUps:
+            pushUpRepsPerMinute = max(1, value)
+        case .russianTwists:
+            twistRepsPerMinute = max(1, value)
+        }
+    }
+
+    /// Pause, die eine Anzahl Wiederholungen einbringt – mindestens eine Minute.
+    /// - Parameter kind: Übung der Wiederholungen; ohne Angabe die gerade gewählte.
+    func earnedMinutes(forReps reps: Int, exercise kind: ExerciseKind? = nil) -> Int {
+        ChallengeRules.earnedMinutes(reps: reps, repsPerMinute: repsPerMinute(for: kind ?? exercise))
+    }
+
     // MARK: - Verlauf
 
     func deleteRecord(_ record: ChallengeRecord) {
@@ -246,6 +283,13 @@ final class AppModel: ObservableObject {
 
         var ticket: ReturnTicket?
         if case .shortcut(.some(let name)) = request.kind {
+            // Nach der Challenge bleibt dieselbe App so lange ohne neue
+            // Challenge, wie die Wiederholungen hergeben.
+            let granted = earnedMinutes(
+                forReps: max(1, countedReps ?? requiredReps),
+                exercise: exercise
+            )
+            ShortcutBypass.grant(for: name, minutes: granted)
             ticket = self.ticket(forAppNamed: name)
         }
 

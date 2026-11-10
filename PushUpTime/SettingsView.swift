@@ -40,6 +40,37 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    ForEach(ExerciseKind.allCases) { kind in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Stepper(
+                                value: Binding(
+                                    get: { model.repsPerMinute(for: kind) },
+                                    set: { model.setRepsPerMinute($0, for: kind) }
+                                ),
+                                in: 1...50
+                            ) {
+                                HStack {
+                                    Label(kind.title, systemImage: kind.icon)
+                                    Spacer()
+                                    Text("\(model.repsPerMinute(for: kind))")
+                                        .monospacedDigit()
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Text(rateHint(for: kind))
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                } header: {
+                    Text("Pause nach der Challenge")
+                } footer: {
+                    Text("Pro Übung getrennt: so viele Wiederholungen bringen eine Minute ohne neue Challenge. Standard sind 2 Wiederholungen pro Minute – 30 Liegestütze also 15 Minuten.")
+                }
+
+                Section {
                     Stepper(
                         value: Binding(
                             get: { model.bypassMinutes },
@@ -58,7 +89,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Überspringen")
                 } footer: {
-                    Text("So lange löst dieselbe App nach dem Überspringen keine neue Challenge aus. Bei 0 Minuten ist die App sofort wieder dran.")
+                    Text("Unabhängig von der Pause nach einer Challenge: So lange löst dieselbe App nach dem Überspringen keine neue Challenge aus. Bei 0 Minuten ist die App sofort wieder dran.")
                 }
 
                 Section {
@@ -83,5 +114,12 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    /// „30 Liegestütze = 15 Min“ – zeigt, was die aktuelle Rate einbringt.
+    private func rateHint(for kind: ExerciseKind) -> String {
+        let reps = max(1, model.reps(for: kind))
+        let minutes = model.earnedMinutes(forReps: reps, exercise: kind)
+        return "\(reps) \(kind.unit(for: reps)) = \(minutes) Min"
     }
 }

@@ -20,6 +20,7 @@
 		00000000000000000000E00D /* ChallengeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D018 /* ChallengeIntent.swift */; };
 		00000000000000000000E00E /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D019 /* HistoryView.swift */; };
 		00000000000000000000E041 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D031 /* Assets.xcassets */; };
+		00000000000000000000E042 /* ChallengeRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000D032 /* ChallengeRules.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		00000000000000000000D005 /* ChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeView.swift; sourceTree = "<group>"; };
 		00000000000000000000D006 /* PushUpCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUpCamera.swift; sourceTree = "<group>"; };
 		00000000000000000000D007 /* PushUpShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushUpShared.swift; sourceTree = "<group>"; };
+		00000000000000000000D032 /* ChallengeRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeRules.swift; sourceTree = "<group>"; };
 		00000000000000000000D010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		00000000000000000000D011 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00000000000000000000D014 /* ShortcutRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRules.swift; sourceTree = "<group>"; };
@@ -92,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				00000000000000000000D007 /* PushUpShared.swift */,
+				00000000000000000000D032 /* ChallengeRules.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -178,6 +181,7 @@
 				00000000000000000000E00C /* ChallengeStats.swift in Sources */,
 				00000000000000000000E00D /* ChallengeIntent.swift in Sources */,
 				00000000000000000000E00E /* HistoryView.swift in Sources */,
+				00000000000000000000E042 /* ChallengeRules.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -63,9 +63,16 @@ wird nichts – die Disziplin bleibt bei dir.
   umschaltbar zwischen Liegestützen und Russian Twists. Darunter Summe der 30
   Tage, aktive Tage und bester Tag sowie alle Einheiten (Challenges und freie
   Trainings); zum Löschen nach links wischen.
-- **Ziel als Marke:** Bei einem App-Aufruf zeigt der Zähler dein Standard-Ziel.
-  Du kannst früher auf „Fertig“ drücken oder über das Ziel hinaus weitermachen;
-  eingetragen wird, was die Kamera tatsächlich gezählt hat.
+- **Ziel pro Challenge:** Bei einem App-Aufruf stellst du vor dem Start dein
+  eigenes Ziel ein – ausgehend von deinem Standard (30 Liegestütze bzw. 220
+  Russian Twists), nach unten und oben verstellbar. Das Ziel ist nur eine Marke:
+  Du kannst früher auf „Fertig“ drücken oder darüber hinaus weitermachen.
+  Eingetragen wird, was die Kamera bis zum „Fertig“-Druck gezählt hat.
+- **Pause nach der Challenge:** Nach einer App-Challenge bleibt dieselbe App so
+  lange ohne neue Challenge, wie die gezählten Wiederholungen hergeben. Wie viele
+  Wiederholungen eine Minute bringen, steht in den Einstellungen unter „Pause
+  nach der Challenge“ – standardmäßig 2 Wiederholungen pro Minute, also 15
+  Minuten für 30 Liegestütze.
 - **Überspringen:** Schließt die Challenge ohne Zählung. Dieselbe App löst danach
   für die eingestellte Zeit keine neue Challenge aus (Standard 10 Minuten,
   0 = sofort wieder).
