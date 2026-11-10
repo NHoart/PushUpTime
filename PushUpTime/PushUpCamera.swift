@@ -82,6 +82,7 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
 
     // Nur auf dem Main Thread benutzt.
     private var didComplete = false
+    private let repSound = RepSound()
 
     private enum Side: CaseIterable {
         case left
@@ -514,6 +515,7 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     private func registerRep() {
         guard !didComplete else { return }
         count += 1
+        repSound.play()
         if count >= target {
             didComplete = true
             onCompleted?()
@@ -540,5 +542,74 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
 
     private func publish(_ block: @escaping () -> Void) {
         DispatchQueue.main.async(execute: block)
+    }
+}
+
+/// Kurzer Ton bei jeder gezählten Wiederholung.
+///
+/// Gespielt wird mit der Kategorie `.playback`: Beim Training liegt das iPhone
+/// oft stumm geschaltet am Boden, trotzdem soll jede Wiederholung hörbar sein.
+/// `.mixWithOthers` lässt Musik aus anderen Apps dabei weiterlaufen.
+private final class RepSound {
+    private let player: AVAudioPlayer?
+
+    init() {
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        player = try? AVAudioPlayer(data: Self.tickWAV())
+        player?.volume = 0.6
+        player?.prepareToPlay()
+    }
+
+    func play() {
+        guard let player else { return }
+        player.currentTime = 0
+        player.play()
+    }
+
+    /// 45 ms langer, ausklingender Sinus-Ton als kleine WAV-Datei im Speicher.
+    private static func tickWAV() -> Data {
+        let sampleRate = 44_100
+        let frameCount = Int(0.045 * Double(sampleRate))
+        let frequency = 1_000.0
+
+        var samples = [Int16](repeating: 0, count: frameCount)
+        for frame in 0..<frameCount {
+            let time = Double(frame) / Double(sampleRate)
+            let envelope = exp(-time * 120)
+            samples[frame] = Int16(sin(2 * .pi * frequency * time) * envelope * 18_000)
+        }
+
+        var data = Data()
+        let payload = UInt32(frameCount * 2)
+        data.append(contentsOf: Array("RIFF".utf8))
+        data.appendLE(UInt32(36) + payload)
+        data.append(contentsOf: Array("WAVE".utf8))
+        data.append(contentsOf: Array("fmt ".utf8))
+        data.appendLE(UInt32(16))
+        data.appendLE(UInt16(1))                 // PCM
+        data.appendLE(UInt16(1))                 // mono
+        data.appendLE(UInt32(sampleRate))
+        data.appendLE(UInt32(sampleRate * 2))    // Bytes pro Sekunde
+        data.appendLE(UInt16(2))                 // Block-Ausrichtung
+        data.appendLE(UInt16(16))                // Bits pro Sample
+        data.append(contentsOf: Array("data".utf8))
+        data.appendLE(payload)
+        for sample in samples {
+            data.appendLE(UInt16(bitPattern: sample))
+        }
+        return data
+    }
+}
+
+private extension Data {
+    mutating func appendLE(_ value: UInt16) {
+        append(UInt8(value & 0xFF))
+        append(UInt8((value >> 8) & 0xFF))
+    }
+
+    mutating func appendLE(_ value: UInt32) {
+        for shift in stride(from: 0, to: 32, by: 8) {
+            append(UInt8((value >> shift) & 0xFF))
+        }
     }
 }
