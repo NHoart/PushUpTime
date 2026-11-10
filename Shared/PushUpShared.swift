@@ -12,6 +12,7 @@ enum SharedConfig {
     static let twistRepsKey = "requiredTwistReps.v1"
     static let exerciseKey = "exerciseKind.v1"
     static let bypassKey = "shortcutBypassMinutes.v1"
+    static let rewardRateKey = "repsPerMinute.v1"
     static let activityPrefix = "round."
 
     static var defaults: UserDefaults {
@@ -177,6 +178,15 @@ enum SharedStore {
     /// Anzahl für die aktuell gewählte Übung (z. B. für den Sperrbildschirm).
     static var requiredReps: Int { reps(for: exercise) }
 
+    /// Wie viele Wiederholungen eine Minute Bildschirmzeit einbringen (Standard 2).
+    static var repsPerMinute: Int {
+        get {
+            guard SharedConfig.defaults.object(forKey: SharedConfig.rewardRateKey) != nil else { return 2 }
+            return max(1, SharedConfig.defaults.integer(forKey: SharedConfig.rewardRateKey))
+        }
+        set { SharedConfig.defaults.set(max(1, newValue), forKey: SharedConfig.rewardRateKey) }
+    }
+
     private static func key(for kind: ExerciseKind) -> String {
         switch kind {
         case .pushUps: return SharedConfig.repsKey
@@ -341,19 +351,21 @@ enum RoundScheduler {
         DeviceActivityCenter().stopMonitoring(names)
     }
 
+    /// Startet eine Runde mit dem übergebenen Budget (sonst dem der Sperre).
     @discardableResult
-    static func startRound(for entry: BlockerEntry, serial: Int) -> Bool {
+    static func startRound(for entry: BlockerEntry, serial: Int, minutes: Int? = nil) -> Bool {
         stopRounds(for: entry.id)
         guard entry.hasSelection else { return false }
 
         let selection = entry.selection
+        let budget = max(1, minutes ?? entry.minutes)
         let activityName = DeviceActivityName("\(SharedConfig.activityPrefix)\(entry.id.uuidString).\(serial)")
         let eventName = DeviceActivityEvent.Name("usage.\(entry.id.uuidString).\(serial)")
         let event = DeviceActivityEvent(
             applications: selection.applicationTokens,
             categories: selection.categoryTokens,
             webDomains: selection.webDomainTokens,
-            threshold: DateComponents(minute: max(1, entry.minutes))
+            threshold: DateComponents(minute: budget)
         )
 
         do {

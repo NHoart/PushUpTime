@@ -73,6 +73,10 @@ final class AppModel: ObservableObject {
     @Published var bypassMinutes: Int = 10 {
         didSet { SharedStore.bypassMinutes = bypassMinutes }
     }
+    /// Wie viele Wiederholungen eine Minute Bildschirmzeit einbringen.
+    @Published var repsPerMinute: Int = 2 {
+        didSet { SharedStore.repsPerMinute = repsPerMinute }
+    }
     @Published private(set) var auth: AuthState = .unknown
     @Published var challenge: ChallengeRequest?
     @Published var errorMessage: String?
@@ -87,6 +91,7 @@ final class AppModel: ObservableObject {
         pushUpReps = SharedStore.reps(for: .pushUps)
         twistReps = SharedStore.reps(for: .russianTwists)
         bypassMinutes = SharedStore.bypassMinutes
+        repsPerMinute = SharedStore.repsPerMinute
         updateAuthorizationState()
 
         // Der Shortcuts-Intent läuft im selben Prozess und meldet sich hier,
@@ -203,6 +208,11 @@ final class AppModel: ObservableObject {
 
     /// Anzahl für die gerade gewählte Übung.
     var requiredReps: Int { reps(for: exercise) }
+
+    /// Bildschirmzeit, die eine Anzahl Wiederholungen einbringt – mindestens eine Minute.
+    func earnedMinutes(forReps reps: Int) -> Int {
+        max(1, max(1, reps) / max(1, repsPerMinute))
+    }
 
     /// Setzt die Anzahl der gerade gewählten Übung.
     func setReps(_ value: Int) {
@@ -325,13 +335,17 @@ final class AppModel: ObservableObject {
     }
 
     /// Startet eine neue Runde: Sperre weg, Zeitbudget läuft wieder.
-    func startRound(_ entry: BlockerEntry) {
+    /// - Parameter minutes: Budget dieser Runde. Ohne Angabe gilt das bisherige
+    ///   Budget der Sperre; nach einer Challenge sind es die verdienten Minuten.
+    func startRound(_ entry: BlockerEntry, minutes: Int? = nil) {
+        let budget = max(1, minutes ?? entry.minutes)
         let serial = entry.roundSerial + 1
         ShieldManager.clearShield(for: entry.id)
-        let started = RoundScheduler.startRound(for: entry, serial: serial)
+        let started = RoundScheduler.startRound(for: entry, serial: serial, minutes: budget)
         SharedStore.update(id: entry.id) {
             $0.isLocked = false
             $0.roundSerial = serial
+            $0.minutes = budget
         }
         if !started {
             errorMessage = "Das Zeitlimit konnte nicht gestartet werden. Prüfe, ob Bildschirmzeit für PushUpTime freigegeben ist."
@@ -402,7 +416,8 @@ final class AppModel: ObservableObject {
         var ticket: ReturnTicket?
         switch request.kind {
         case .screenTime(let entry):
-            startRound(entry)
+            // Die nächste Runde dauert so lange, wie die Wiederholungen hergeben.
+            startRound(entry, minutes: earnedMinutes(forReps: max(1, countedReps ?? requiredReps)))
         case .shortcut(.some(let name)):
             ticket = self.ticket(forAppNamed: name)
         case .shortcut(.none), .test, .free:

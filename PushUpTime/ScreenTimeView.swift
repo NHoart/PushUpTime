@@ -93,7 +93,7 @@ struct ScreenTimeView: View {
         } header: {
             Text("Sperren")
         } footer: {
-            Text("Das Zeitbudget zählt die tatsächliche Nutzung der ausgewählten Apps. Ist es aufgebraucht, erscheint der Sperrbildschirm, bis du die Challenge gemacht hast.")
+            Text("Das Zeitbudget zählt die tatsächliche Nutzung der ausgewählten Apps. Ist es aufgebraucht, erscheint der Sperrbildschirm, bis du die Challenge gemacht hast. Die Minuten der nächsten Runde verdienst du mit Wiederholungen – wie viele eine Minute bringen, steht in den Einstellungen unter „Bildschirmzeit-Belohnung“.")
         }
     }
 

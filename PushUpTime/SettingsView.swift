@@ -42,6 +42,36 @@ struct SettingsView: View {
                 Section {
                     Stepper(
                         value: Binding(
+                            get: { model.repsPerMinute },
+                            set: { model.repsPerMinute = max(1, $0) }
+                        ),
+                        in: 1...50
+                    ) {
+                        HStack {
+                            Text("Wiederholungen pro Minute")
+                            Spacer()
+                            Text("\(model.repsPerMinute)")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    HStack {
+                        Text("\(model.requiredReps) \(model.exercise.unit(for: model.requiredReps))")
+                        Spacer()
+                        Text("\(model.earnedMinutes(forReps: model.requiredReps)) Min")
+                            .monospacedDigit()
+                            .foregroundStyle(.green)
+                    }
+                } header: {
+                    Text("Bildschirmzeit-Belohnung")
+                } footer: {
+                    Text("Nach einer Bildschirmzeit-Sperre gibt es je \(model.repsPerMinute) Wiederholungen eine Minute Bildschirmzeit. Standard: 2 Wiederholungen = 1 Minute, also 15 Minuten für 30 Liegestütze.")
+                }
+
+                Section {
+                    Stepper(
+                        value: Binding(
                             get: { model.bypassMinutes },
                             set: { model.bypassMinutes = $0 }
                         ),

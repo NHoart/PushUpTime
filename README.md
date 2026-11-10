@@ -73,6 +73,11 @@ wird nichts – die Disziplin bleibt bei dir.
 - **Bildschirmzeit-Sperren (optional):** Auswahl über den System-`FamilyActivityPicker`,
   eigenes Zeitbudget pro Sperre (Standard 10 Minuten), Sperrbildschirm aus der
   Shield-Erweiterung, mehrere Sperren parallel.
+- **Bildschirmzeit verdienen:** Jede Challenge bringt so viel Zeit, wie die
+  Wiederholungen hergeben – standardmäßig 2 Wiederholungen = 1 Minute, also
+  15 Minuten für 30 Liegestütze. Das Verhältnis lässt sich in den Einstellungen
+  unter „Bildschirmzeit-Belohnung“ ändern; die Minuten pro Sperre gelten nur für
+  die erste Runde und werden danach durch die verdienten Minuten ersetzt.
 
 ## Bauen
 

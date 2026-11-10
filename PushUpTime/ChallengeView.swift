@@ -35,6 +35,17 @@ struct ChallengeView: View {
         }
     }
 
+    /// Bildschirmzeit, die diese Challenge einbringt (nur bei echter Sperre).
+    private var rewardMinutes: Int? {
+        guard request.isBlocking else { return nil }
+        return model.earnedMinutes(forReps: reps)
+    }
+
+    /// Verdiente Minuten am Ende – gezählt, sonst das Ziel.
+    private var grantedMinutes: Int {
+        model.earnedMinutes(forReps: max(reps, camera.count))
+    }
+
     /// Nur wenn ein Rücksprung-Link hinterlegt ist, wird auch gesprungen.
     private var returnAppName: String? {
         guard case .shortcut(.some(let name)) = request.kind,
@@ -250,7 +261,9 @@ struct ChallengeView: View {
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             } else {
-                Text(request.isBlocking ? "Sperre aufgehoben" : "Challenge beendet")
+                Text(request.isBlocking
+                     ? "\(grantedMinutes) Min Bildschirmzeit freigegeben"
+                     : "Challenge beendet")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -284,6 +297,11 @@ struct ChallengeView: View {
                 Text(isFree ? "Wiederholungen" : "von \(reps)")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.5))
+                if let reward = rewardMinutes {
+                    Text("+ \(reward) Min Bildschirmzeit")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
             }
         }
         .frame(width: 250, height: 250)
@@ -436,7 +454,9 @@ struct ChallengeView: View {
     private func amountLabel(for kind: ExerciseKind) -> String {
         if isFree { return "Frei zählen, ohne Ziel" }
         let count = max(1, model.reps(for: kind))
-        return "\(count) \(kind.unit(for: count))"
+        let amount = "\(count) \(kind.unit(for: count))"
+        guard request.isBlocking else { return amount }
+        return "\(amount) · \(model.earnedMinutes(forReps: count)) Min"
     }
 
     /// Übung übernehmen (auch als neuen Standard) und die Zählung starten.
@@ -459,7 +479,7 @@ struct ChallengeView: View {
 
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1100))
-            leave(ticket: model.completeChallenge())
+            leave(ticket: model.completeChallenge(reps: camera.count > 0 ? camera.count : nil))
         }
     }
 
