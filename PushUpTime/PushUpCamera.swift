@@ -136,6 +136,7 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
                 session.stopRunning()
             }
         }
+        repSound.deactivate()
     }
 
     // MARK: - Session
@@ -553,17 +554,48 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
 private final class RepSound {
     private let player: AVAudioPlayer?
 
+    /// Kategorie und Aktivierung sind XPC-Aufrufe an `mediaserverd` und können
+    /// den Main Thread kurz blockieren (Xcode meldet das als „AVAudioSession
+    /// Hang Risk“). Beides läuft deshalb einmalig auf dieser Queue.
+    private static let setupQueue = DispatchQueue(label: "pushuptime.repsound.setup", qos: .utility)
+
+    /// Nur auf `setupQueue` benutzt.
+    private var sessionHeld = true
+
     init() {
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
-        player = try? AVAudioPlayer(data: Self.tickWAV())
+        let player = try? AVAudioPlayer(data: Self.tickWAV())
         player?.volume = 0.6
-        player?.prepareToPlay()
+        self.player = player
+
+        Self.setupQueue.async {
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            // Vorab aktivieren, damit `play()` die Session nicht mehr selbst
+            // (und damit auf dem Main Thread) aktivieren muss.
+            try? session.setActive(true)
+            player?.prepareToPlay()
+        }
     }
 
     func play() {
         guard let player else { return }
         player.currentTime = 0
         player.play()
+    }
+
+    /// Gibt die Session wieder frei, wenn die Challenge vorbei ist – sonst
+    /// bliebe der App-Audio-Route (und die Stummschalter-Umgehung) bis zum
+    /// Beenden der App belegt. Läuft wie die Einrichtung abseits des Main Threads.
+    func deactivate() {
+        Self.setupQueue.async { [self] in
+            guard sessionHeld else { return }
+            sessionHeld = false
+            // Der letzte Tick klingt 45 ms nach – erst danach abgeben, damit
+            // der Ton nicht mitten im Ausklingen abbricht.
+            Self.setupQueue.asyncAfter(deadline: .now() + 0.1) {
+                try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+            }
+        }
     }
 
     /// 45 ms langer, ausklingender Sinus-Ton als kleine WAV-Datei im Speicher.

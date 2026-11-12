@@ -16,7 +16,9 @@ struct ShortcutGuideView: View {
 
     init(rule: ShortcutRule) {
         self.rule = rule
-        let link = rule.returnURLString ?? rule.returnURL?.absoluteString ?? ""
+        // Der aufgelöste Link, damit alte Standard-Links (z. B. die
+        // YouTube-Startseite) hier schon aktuell angezeigt werden.
+        let link = rule.returnURL?.absoluteString ?? rule.returnURLString ?? ""
         _returnLink = State(initialValue: link)
         _savedLink = State(initialValue: link)
     }
@@ -163,7 +165,7 @@ struct ShortcutGuideView: View {
         } header: {
             Text("Rücksprung in die App")
         } footer: {
-            Text("Der Link, mit dem PushUpTime nach den Liegestützen zurück zu \(rule.appName) springt – z. B. instagram://, youtube:// oder tiktok://. Viele Apps haben ein eigenes Schema; ohne passenden Link bleibt es beim App-Umschalter.")
+            Text("Der Link, mit dem PushUpTime nach den Liegestützen zurück zu \(rule.appName) springt – z. B. instagram://, tiktok:// oder für YouTube „Später ansehen“: youtube://www.youtube.com/playlist?list=WL. Viele Apps haben ein eigenes Schema; ohne passenden Link bleibt es beim App-Umschalter.")
         }
     }
 

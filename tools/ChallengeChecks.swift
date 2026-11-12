@@ -157,6 +157,18 @@ struct ChallengeChecks {
             check(false, "Pause bei vorzeitigem Fertig wurde gesetzt")
         }
 
+        // 10. YouTube springt in „Später ansehen“, auch bei alten Startseiten-Links.
+        let watchLater = "youtube://www.youtube.com/playlist?list=WL"
+        check(ShortcutRule(appName: "YouTube").returnURL?.absoluteString == watchLater,
+              "YouTube-Rücksprung öffnet „Später ansehen“")
+        check(ShortcutRule(appName: "YouTube", returnURLString: "youtube://").returnURL?.absoluteString == watchLater,
+              "gespeicherter Startseiten-Link wird auf „Später ansehen“ umgestellt")
+        check(ShortcutRule(appName: "YouTube", returnURLString: "youtube://www.youtube.com/playlist?list=PL123")
+                .returnURL?.absoluteString == "youtube://www.youtube.com/playlist?list=PL123",
+              "eigene YouTube-Playlist bleibt erhalten")
+        check(ShortcutRule(appName: "Instagram").returnURL?.absoluteString == "instagram://",
+              "andere Apps behalten ihren Rücksprung")
+
         print("")
         if failures == 0 {
             print("ALLE PRÜFUNGEN BESTANDEN")

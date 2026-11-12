@@ -37,7 +37,12 @@ struct ShortcutRule: Codable, Identifiable, Equatable {
     /// Wohin es nach den Liegestützen zurückgeht (`nil` = kein Rücksprung).
     var returnURL: URL? {
         let stored = returnURLString?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let raw = (stored?.isEmpty == false ? stored : Self.suggestedReturnURLString(for: appName))
+        let raw: String?
+        if let stored, !stored.isEmpty {
+            raw = Self.migratedReturnURLString(stored, for: appName)
+        } else {
+            raw = Self.suggestedReturnURLString(for: appName)
+        }
         return Self.normalizedURL(raw)
     }
 
@@ -45,6 +50,33 @@ struct ShortcutRule: Codable, Identifiable, Equatable {
     static func suggestedReturnURLString(for appName: String) -> String? {
         knownSchemes[appName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()]
     }
+
+    /// YouTube öffnete früher nur die Startseite (`youtube://`). Wer den Link so
+    /// gespeichert hat, landet jetzt direkt in „Später ansehen“ – eigene Links
+    /// bleiben unangetastet.
+    static func migratedReturnURLString(_ stored: String, for appName: String) -> String {
+        guard appName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "youtube" else {
+            return stored
+        }
+        let compact = stored.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: " /"))
+        return legacyYouTubeLinks.contains(compact) ? youtubeWatchLaterURLString : stored
+    }
+
+    /// „Später ansehen“ im YouTube-App-Link (`list=WL`).
+    static let youtubeWatchLaterURLString = "youtube://www.youtube.com/playlist?list=WL"
+
+    /// Frühere YouTube-Links, die nur die Startseite öffneten.
+    private static let legacyYouTubeLinks: Set<String> = [
+        "youtube:",
+        "youtube://",
+        "youtube:///",
+        "youtube://youtube.com",
+        "youtube://www.youtube.com",
+        "youtube://m.youtube.com",
+        "https://youtube.com",
+        "https://www.youtube.com",
+        "https://m.youtube.com"
+    ]
 
     /// Macht aus „instagram“ ein `instagram://` und filtert Unsinn aus.
     static func normalizedURL(_ raw: String?) -> URL? {
@@ -65,7 +97,7 @@ struct ShortcutRule: Codable, Identifiable, Equatable {
     private static let knownSchemes: [String: String] = [
         "instagram": "instagram://",
         "tiktok": "tiktok://",
-        "youtube": "youtube://",
+        "youtube": youtubeWatchLaterURLString,
         "x": "twitter://",
         "twitter": "twitter://",
         "snapchat": "snapchat://",

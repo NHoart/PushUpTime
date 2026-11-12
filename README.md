@@ -50,7 +50,9 @@ wird nichts – die Disziplin bleibt bei dir.
 - **Shortcut-Anleitung pro App:** Name, Aktion, Rücksprung-Link und
   Mitteilungstext, inklusive Test.
 - **Rücksprung in die Ziel-App:** Nach den Liegestützen öffnet PushUpTime die App
-  über ihr URL-Schema (z. B. `instagram://`). Ein kurzer Launch-Pass sorgt dafür,
+  über ihr URL-Schema (z. B. `instagram://`). Bei YouTube geht es direkt in
+  „Später ansehen“ (`youtube://www.youtube.com/playlist?list=WL`) statt auf die
+  Startseite. Ein kurzer Launch-Pass sorgt dafür,
   dass die Automatisierung dabei nicht sofort wieder PushUpTime nach vorn holt.
 - **Freiwillig mit Kamera tracken:** „Mit Kamera zählen“ auf dem Startbildschirm
   startet dieselbe Kamera-Zählung wie bei einer Challenge – nur ohne Ziel.
