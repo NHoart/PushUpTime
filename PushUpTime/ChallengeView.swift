@@ -260,17 +260,23 @@ struct ChallengeView: View {
                         .background(Capsule().fill(.white.opacity(0.14)))
                 }
             } else {
-                Button {
-                    leave(ticket: model.skipChallenge())
-                } label: {
-                    Text("Überspringen")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 11)
-                        .background(Capsule().fill(.white.opacity(0.14)))
+                VStack(spacing: 12) {
+                    if isAppChallenge {
+                        declineButton
+                    }
+
+                    Button {
+                        leave(ticket: model.skipChallenge())
+                    } label: {
+                        Text("Überspringen")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 11)
+                            .background(Capsule().fill(.white.opacity(0.14)))
+                    }
+                    .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen, und öffnet danach die App.")
                 }
-                .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen.")
             }
         }
         .padding(.vertical, 24)
@@ -465,17 +471,23 @@ struct ChallengeView: View {
 
             // Ausweg aus der Meldung: schließt die Zählung ohne Wiederholungen.
             if !isFree {
-                Button {
-                    leave(ticket: model.skipChallenge())
-                } label: {
-                    Text("Überspringen")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 11)
-                        .background(Capsule().fill(.white.opacity(0.14)))
+                VStack(spacing: 10) {
+                    if isAppChallenge {
+                        declineButton
+                    }
+
+                    Button {
+                        leave(ticket: model.skipChallenge())
+                    } label: {
+                        Text("Überspringen")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 11)
+                            .background(Capsule().fill(.white.opacity(0.14)))
+                    }
+                    .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen, und öffnet danach die App.")
                 }
-                .accessibilityHint("Beendet die Challenge, ohne Wiederholungen zu zählen.")
             }
 
             // Freies Training und App-Challenge: so viele Wiederholungen wie
@@ -505,6 +517,22 @@ struct ChallengeView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, 32)
         }
+    }
+
+    /// „Doch nicht“: Challenge schließen, ohne in die Ziel-App zu springen und
+    /// ohne Freigabe – wer die App doch nicht öffnen will, bleibt in PushUpTime.
+    private var declineButton: some View {
+        Button {
+            declineApp()
+        } label: {
+            Label("App doch nicht öffnen", systemImage: "xmark")
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 11)
+                .background(Capsule().fill(.white.opacity(0.22)))
+        }
+        .accessibilityHint("Schließt die Challenge und bleibt in PushUpTime. Die App wird nicht geöffnet.")
     }
 
     private var hintText: String {
@@ -599,6 +627,14 @@ struct ChallengeView: View {
     /// Ziel für diese eine Challenge (1...500) – unabhängig vom Standard.
     private func setGoal(_ value: Int) {
         goal = ChallengeRules.clampGoal(value)
+    }
+
+    /// Schließt die Challenge, ohne die Ziel-App zu öffnen und ohne sie
+    /// freizugeben – die Pause gilt damit nicht.
+    private func declineApp() {
+        camera.stop()
+        model.challenge = nil
+        dismiss()
     }
 
     private func startCamera() {
