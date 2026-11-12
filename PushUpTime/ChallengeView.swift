@@ -532,7 +532,7 @@ struct ChallengeView: View {
                 .padding(.vertical, 11)
                 .background(Capsule().fill(.white.opacity(0.22)))
         }
-        .accessibilityHint("Schließt die Challenge und bleibt in PushUpTime. Die App wird nicht geöffnet.")
+        .accessibilityHint("Schließt die Challenge und führt zum Home-Bildschirm. Die App wird nicht geöffnet.")
     }
 
     private var hintText: String {
@@ -629,12 +629,19 @@ struct ChallengeView: View {
         goal = ChallengeRules.clampGoal(value)
     }
 
-    /// Schließt die Challenge, ohne die Ziel-App zu öffnen und ohne sie
-    /// freizugeben – die Pause gilt damit nicht.
+    /// „Doch nicht“: Challenge schließen und zum Home-Bildschirm – die App
+    /// bleibt zu. iOS hat dafür keinen offiziellen Weg; der Aufruf nutzt den
+    /// Suspend-Mechanismus, den auch der Home-Button auslöst.
     private func declineApp() {
         camera.stop()
         model.challenge = nil
         dismiss()
+
+        Task { @MainActor in
+            // Erst die Challenge-Ansicht schließen, dann in den Hintergrund.
+            try? await Task.sleep(for: .milliseconds(300))
+            UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
+        }
     }
 
     private func startCamera() {
