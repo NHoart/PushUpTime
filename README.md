@@ -121,3 +121,12 @@ ein echtes iPhone.
   „App ist geöffnet“ und holt PushUpTime sofort wieder nach vorn.
 - Kamera-Zählung braucht seitliches Ablegen des iPhones, sodass Schulter, Ellbogen
   und Handgelenk sichtbar sind.
+
+## Lizenz
+
+PushUpTime ist **kein Open-Source-Projekt**. Der Quellcode ist öffentlich einsehbar, die Rechte bleiben aber beim Autor: alle Rechte vorbehalten.
+
+- **Erlaubt** ist: den Code auf GitHub ansehen und dort forken, Änderungen als Pull Request vorschlagen, die App unentgeltlich nutzen.
+- **Nicht erlaubt** ist: den Code oder Teile davon kopieren, verändern und weitergeben, in eigene Apps oder Produkte einbauen oder eigene Fassungen der App veröffentlichen.
+
+Der vollständige Text steht in [`LICENSE`](LICENSE).
