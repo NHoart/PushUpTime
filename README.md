@@ -79,16 +79,123 @@ wird nichts – die Disziplin bleibt bei dir.
   für die eingestellte Zeit keine neue Challenge aus (Standard 10 Minuten,
   0 = sofort wieder).
 
-## Bauen
+## Auf dem iPhone installieren
+
+PushUpTime gibt es nicht im App Store – du baust die App mit Xcode direkt auf
+dein iPhone. Dafür reicht ein kostenloser Apple-Account (Grenzen unter
+[Kostenloses Apple-Team](#kostenloses-apple-team)). TestFlight oder eine
+Ad-hoc-Verteilung würden dagegen das bezahlte Developer Program brauchen.
+
+### Was du brauchst
+
+- Einen Mac mit **Xcode 26 oder neuer** (kostenlos im Mac App Store, rund 10 GB).
+  Ältere Xcodes kennen die Aktion „Liegestütze starten“ nicht – die ist ein App
+  Intent aus iOS 26.
+- Ein **iPhone ab iOS 17**. Automatischer Rücksprung in die Ziel-App und die
+  Shortcut-Aktion „Liegestütze starten“ brauchen iOS 26; unter iOS 17–25 läuft
+  die App, die Automatisierung zeigt dort aber nur eine Mitteilung.
+- Deine **Apple-ID**, dieselbe in Xcode und auf dem iPhone.
+- Ein **Kabel** (Lightning oder USB-C) für die erste Installation.
+
+### 1. Xcode einrichten
+
+1. Xcode aus dem Mac App Store installieren und einmal öffnen. Lizenz
+   bestätigen und die Zusatzkomponenten installieren lassen.
+2. **Xcode → Settings… (⌘,)** öffnen, Tab **Accounts**, auf **+** tippen und
+   **Apple ID** wählen. Nach dem Anmelden steht dein Team als
+   „*Dein Name* (Personal Team)“ in der Liste.
+3. Im selben Tab das Team auswählen → **Manage Certificates…** → **+** →
+   **iOS Development**. Meistens legt Xcode das Zertifikat beim ersten Build
+   selbst an; der Schritt hilft, wenn später „No signing certificate“ kommt.
+
+### 2. iPhone vorbereiten
+
+1. iPhone entsperren, per Kabel an den Mac anschließen und auf dem iPhone
+   „Diesem Computer vertrauen?“ mit **Vertrauen** bestätigen, dann den Code
+   eingeben.
+2. **Entwicklermodus einschalten:** Einstellungen → Datenschutz & Sicherheit →
+   Entwicklermodus → einschalten → iPhone neu starten → nach dem Neustart
+   **Einschalten** antippen und den Code eingeben.
+   Der Punkt erscheint erst, nachdem das iPhone einmal mit Xcode verbunden war.
+   Fehlt er, erst Schritt 3 machen, das iPhone in Xcode einmal auswählen und
+   dann noch mal nachsehen.
+3. In Xcode oben in der Toolbar als Zielgerät dein iPhone auswählen (statt eines
+   Simulators). Fehlt es, **Window → Devices and Simulators (⇧⌘2)** öffnen und
+   links das iPhone anklicken. Beim ersten Mal lädt Xcode Geräteunterstützung
+   nach, das dauert ein paar Minuten.
+4. Optional: dort beim iPhone **Connect via network** anhaken – danach baut und
+   installiert Xcode auch über WLAN.
+
+### 3. Projekt öffnen und signieren
 
 ```bash
 open PushUpTime.xcodeproj
 ```
 
-Zielgerät wählen, unter *Signing & Capabilities* dein persönliches Team
-auswählen, starten.
+1. Links im Navigator das Projekt **PushUpTime** anklicken, unter **Targets**
+   das Target **PushUpTime** wählen und den Tab **Signing & Capabilities**
+   öffnen.
+2. **Automatically manage signing** anhaken.
+3. Bei **Team** dein persönliches Team auswählen.
+4. Die **Bundle Identifier** lautet `com.noahh.pushuptime.9c31f7` und ist schon
+   eindeutig. Meldet Xcode „Failed to register bundle identifier“, trage etwas
+   Eigenes ein, z. B. `com.deinname.pushuptime`. Der Rücksprung-Link
+   `pushuptime://` bleibt davon unberührt.
 
-Kommandozeile (Simulator, ohne Signatur):
+### 4. Installieren und starten
+
+1. **⌘R** drücken (oder Product → Run). Der erste Build dauert ein paar Minuten;
+   Xcode registriert dabei dein iPhone und legt das Provisioning-Profil an.
+2. Beim ersten Start fragt iOS nach dem Kamerazugriff – **Erlauben**.
+3. Meldet das iPhone „Nicht vertrauenswürdiger Entwickler“ oder schließt sich
+   die App sofort, dann: Einstellungen → Allgemein → VPN & Geräteverwaltung →
+   unter **Entwickler-App** deine Apple-ID antippen → **„… vertrauen“** →
+   **Vertrauen**. Danach startet die App normal.
+4. Xcode darf danach zu – die App bleibt auf dem iPhone. Für einen neuen Build
+   das iPhone wieder anschließen (oder im WLAN lassen) und erneut ⌘R. Die
+   gespeicherten Einheiten bleiben erhalten, solange die Bundle-ID gleich
+   bleibt.
+
+### 5. Shortcuts-Automatisierung einrichten
+
+Jetzt fehlt nur noch der Auslöser: [Benachrichtigungs-Modus
+einrichten](#benachrichtigungs-modus-einrichten) – pro App ein Eintrag in
+PushUpTime und die passende Automatisierung in Shortcuts.
+
+### Nach sieben Tagen erneuern
+
+Mit dem kostenlosen Team läuft das Provisioning-Profil nach **7 Tagen** ab.
+Danach bleibt das Icon liegen, die App startet aber nicht mehr. iPhone
+anschließen, Projekt öffnen, ⌘R – die Daten bleiben. Wer nicht jede Woche
+neu installieren will, braucht das bezahlte Apple Developer Program (99 $ im
+Jahr); damit gilt das Profil ein Jahr.
+
+### Kommandozeile (optional)
+
+Wer lieber im Terminal baut:
+
+```bash
+# 1. iPhone-UDID anzeigen (iPhone verbunden und entsperrt)
+xcrun devicectl list devices
+
+# 2. Für das Gerät bauen
+xcodebuild -project PushUpTime.xcodeproj -scheme PushUpTime \
+  -configuration Debug -destination 'generic/platform=iOS' \
+  -derivedDataPath build -allowProvisioningUpdates build
+
+# 3. Installieren
+xcrun devicectl device install app --device <UDID> \
+  build/Build/Products/Debug-iphoneos/PushUpTime.app
+```
+
+`-allowProvisioningUpdates` erlaubt xcodebuild, das Profil über deinen in Xcode
+angemeldeten Account zu erneuern. Der Ordner `build/` steht schon in
+`.gitignore`.
+
+### Simulator
+
+Zum Ansehen der Oberfläche ohne iPhone in Xcode ein Simulator-Ziel wählen und
+⌘R drücken. Alternativ ohne Signatur:
 
 ```bash
 xcodebuild -project PushUpTime.xcodeproj -target PushUpTime \
@@ -98,10 +205,24 @@ xcodebuild -project PushUpTime.xcodeproj -target PushUpTime \
 Auf dem Simulator gibt es keine Kamera-Zählung – zum Ausprobieren brauchst du
 ein echtes iPhone.
 
+### Wenn etwas klemmt
+
+| Meldung / Symptom | Lösung |
+| --- | --- |
+| `No signing certificate "iOS Development" found` | Xcode → Settings… → Accounts → Team auswählen → **Manage Certificates…** → **+** → **iOS Development**, danach noch mal ⌘R. |
+| `Failed to register bundle identifier` | Die Bundle-ID ist schon vergeben. Unter *Signing & Capabilities* auf etwas Eigenes ändern, z. B. `com.deinname.pushuptime`. |
+| `Unable to install "PushUpTime"` oder `application-identifier entitlement … does not match` | Auf dem iPhone liegt noch eine Installation mit anderem Team oder anderer Bundle-ID. App löschen und neu installieren. |
+| iPhone erscheint nicht als Zielgerät | Entsperren, anderes Kabel bzw. anderen USB-Port probieren, Entwicklermodus prüfen und in *Devices and Simulators* nachsehen. Bei „Preparing device“ einfach warten. |
+| `Device is locked` / `Developer Mode disabled` | iPhone entsperren bzw. Entwicklermodus einschalten (Schritt 2). |
+| App startet nicht mehr, Icon bleibt | Profil nach 7 Tagen abgelaufen → ⌘R. Oder die Entwickler-App ist nicht vertrauenswürdig → VPN & Geräteverwaltung. |
+| `The maximum number of apps for free development profiles has been reached` | Das kostenlose Team erlaubt nur 3 selbst installierte Apps gleichzeitig – eine andere löschen. |
+| „Liegestütze starten“ fehlt in Shortcuts | Die Aktion gibt es erst ab iOS 26. Alternativ **„URL öffnen“** mit `pushuptime://challenge?app=…` verwenden (dann ohne automatischen Rücksprung). |
+| Kamera bleibt schwarz | Im Simulator gibt es keine Kamera. Auf dem iPhone den Kamerazugriff unter Einstellungen → PushUpTime prüfen und das Gerät seitlich ablegen, sodass Schulter, Ellbogen und Handgelenk sichtbar sind. |
+
 ## Kostenloses Apple-Team
 
 - Das Provisioning-Profil läuft nach 7 Tagen ab; die App danach über Xcode neu
-  installieren.
+  installieren (siehe [Nach sieben Tagen erneuern](#nach-sieben-tagen-erneuern)).
 - Maximal 3 Apps gleichzeitig bzw. 10 App-IDs pro Woche.
 - PushUpTime braucht nur die Kamera und die Shortcuts-Automatisierung.
 
