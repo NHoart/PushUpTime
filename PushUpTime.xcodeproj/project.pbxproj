@@ -325,7 +325,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 6.3.3;
+				MARKETING_VERSION = 6.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
@@ -349,7 +349,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 6.3.3;
+				MARKETING_VERSION = 6.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.noahh.pushuptime.9c31f7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
