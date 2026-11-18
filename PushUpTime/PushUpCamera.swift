@@ -53,6 +53,12 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     // Winkel (Grad) am Ellbogen, bei denen „unten“ bzw. „oben“ erreicht ist.
     private let downAngle: Double = 105
     private let upAngle: Double = 148
+    /// So lange muss die untere Position bestätigt sein, bevor sie einen Rep zählt.
+    private let downConfirmDuration: CFTimeInterval = 0.12
+    /// Mindestabstand zwischen zwei gezählten Wiederholungen.
+    private let repCooldown: CFTimeInterval = 0.35
+    /// Zeitkonstante der Winkel-Glättung: ~70 ms Nachlauf, unabhängig von der Bildrate.
+    private let smoothingTimeConstant: CFTimeInterval = 0.07
     private let minJointConfidence: Float = 0.2
     /// Ab diesem Ausschlag (in Schulterbreiten) gilt ein Twist als ausgeführt.
     private let twistThreshold: Double = 0.18
@@ -310,6 +316,7 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
             if smoothedAngle == nil || now - smoothedAt > 0.8 {
                 smoothedAngle = nil
                 isDown = false
+                downSince = 0
                 preferredSide = nil
                 publishPhase(.searching)
                 publishAngle(nil)
@@ -320,9 +327,14 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         preferredSide = arm.side
         publishAngle(arm.angle)
 
+        // Zeitbasierte EMA statt festem Faktor pro Frame: Der geglättete Winkel
+        // läuft dem Arm nur ~70 ms nach und zieht bei niedriger Bildrate nicht
+        // mehr sekundenlang hinterher.
         let smoothed: Double
         if let previous = smoothedAngle, now - smoothedAt < 0.4 {
-            smoothed = previous * 0.6 + arm.angle * 0.4
+            let dt = max(0, now - smoothedAt)
+            let alpha = 1 - exp(-dt / smoothingTimeConstant)
+            smoothed = previous + (arm.angle - previous) * alpha
         } else {
             smoothed = arm.angle
         }
@@ -330,27 +342,42 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         smoothedAt = now
 
         if smoothed <= downAngle {
-            if !isDown {
-                isDown = true
+            if downSince == 0 {
                 downSince = now
+            }
+            // Untere Position erst nach kurzer Bestätigung als gültig
+            // markieren, damit Zittern keinen Rep auslöst.
+            if !isDown, now - downSince >= downConfirmDuration {
+                isDown = true
             }
             publishPhase(.down)
             return
         }
 
         guard smoothed >= upAngle else {
-            // Zwischen den Schwellen: Zustand halten (Hysterese).
+            // Zwischen den Schwellen: Zustand halten (Hysterese). Wer die untere
+            // Position nicht lange genug bestätigt hat, verliert diesen Rep.
+            if !isDown {
+                downSince = 0
+            }
             return
         }
 
+        // Zählen genau beim Übergang unten -> oben, ohne Wartezeit oben.
         guard isDown else {
+            downSince = 0
             publishPhase(.up)
             return
         }
 
-        guard now - downSince > 0.25, now - lastRepAt > 0.45 else { return }
-
         isDown = false
+        downSince = 0
+
+        guard now - lastRepAt >= repCooldown else {
+            publishPhase(.up)
+            return
+        }
+
         lastRepAt = now
         phaseCache = .up
         publish {
