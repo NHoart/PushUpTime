@@ -79,6 +79,36 @@ wird nichts – die Disziplin bleibt bei dir.
   für die eingestellte Zeit keine neue Challenge aus (Standard 10 Minuten,
   0 = sofort wieder).
 
+## Wie die Kamera-Zählung funktioniert
+
+Die App zählt nicht per Bewegungssensor, sondern wertet das Kamerabild aus.
+
+- **Pose-Erkennung:** Jedes zweite Frame der Frontkamera (1280×720) läuft durch
+  Apples Vision-Framework (`VNDetectHumanBodyPoseRequest`). Es liefert die
+  Positionen von Schultern, Ellbogen, Handgelenken und Hüften als normalisierte
+  Punkte samt Confidence; ab 0,2 gilt ein Punkt als erkannt. Da das iPhone beim
+  Training oft seitlich liegt, probiert die App alle vier Bild-Orientierungen
+  durch und merkt sich die beste. Geht die Pose verloren, sucht sie nach zehn
+  Frames neu.
+- **Liegestütze:** Gemessen wird der Ellbogen-Winkel zwischen Schulter, Ellbogen
+  und Handgelenk, zeitgeglättet über rund 70 ms. „Unten“ ist bei ≤ 105° erreicht
+  und muss 0,12 s lang bestätigt sein, „oben“ bei ≥ 148°. Gezählt wird beim
+  Übergang von unten nach oben, höchstens eine Wiederholung alle 0,35 s.
+- **Russian Twists:** Der Mittelpunkt beider Handgelenke wird relativ zur
+  Beckenmitte (ersatzweise Körperwurzel) gemessen und durch die Schulterbreite
+  geteilt. Ab einem Ausschlag von 0,18 Schulterbreiten zählt ein Twist; zurück
+  in die Mitte (unter 0,108) lädt den nächsten. Die Hände müssen dabei über dem
+  Becken liegen.
+- **Grenzen:** Verdeckte Gelenke kann Vision nicht schätzen – bei Liegestützen
+  müssen Schulter, Ellbogen und Handgelenk sichtbar sein, bei Twists Hände und
+  Becken. Aussetzer bis 0,8 s werden überbrückt, danach startet die Erkennung
+  neu. Das Modell arbeitet in 2D ohne Tiefe: Ein stark schräger Kamerawinkel
+  verzerrt den projizierten Ellbogen-Winkel. Am zuverlässigsten ist das seitlich
+  abgelegte iPhone. Im Simulator gibt es keine Kamera.
+- **Debug-Overlay:** In der laufenden Kamera blendet der Schalter „Gelenke“
+  oben rechts die erkannten Punkte und Verbindungslinien ein – hilfreich, um zu
+  sehen, warum eine Wiederholung nicht zählt.
+
 ## Auf dem iPhone installieren
 
 PushUpTime gibt es nicht im App Store – du baust die App mit Xcode direkt auf

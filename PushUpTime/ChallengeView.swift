@@ -1,11 +1,15 @@
 import AVFoundation
 import SwiftUI
 import UIKit
+import Vision
 
 struct ChallengeView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var model: AppModel
     @StateObject private var camera = PushUpCamera()
+
+    /// Debug: erkannte Gelenke als Punkte und Linien über der Vorschau.
+    @AppStorage("showPoseSkeleton") private var showsPoseSkeleton = false
 
     /// Die Challenge ist erledigt – die Bestätigung läuft, danach der Rücksprung.
     @State private var finished = false
@@ -79,7 +83,7 @@ struct ChallengeView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            CameraPreview(camera: camera)
+            CameraPreview(camera: camera, showsSkeleton: showsPoseSkeleton)
                 .ignoresSafeArea()
 
             LinearGradient(
@@ -130,6 +134,10 @@ struct ChallengeView: View {
                 footer
             }
             .padding(.vertical, 24)
+
+            if chosenExercise != nil && camera.status == .running && !finished {
+                poseSkeletonToggle
+            }
 
             // Erst die Übung wählen, dann zählt die Kamera.
             if chosenExercise == nil {
@@ -407,6 +415,37 @@ struct ChallengeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black.opacity(0.75))
         .ignoresSafeArea()
+    }
+
+    /// Schalter für das Debug-Overlay – bleibt über Challenges hinweg an.
+    private var poseSkeletonToggle: some View {
+        VStack {
+            HStack {
+                Spacer()
+
+                Button {
+                    showsPoseSkeleton.toggle()
+                } label: {
+                    Label("Gelenke",
+                          systemImage: showsPoseSkeleton ? "person.fill.viewfinder" : "person.crop.rectangle")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(showsPoseSkeleton ? Color.black : Color.white.opacity(0.7))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule().fill(showsPoseSkeleton
+                                           ? Color(red: 0.45, green: 0.9, blue: 0.55)
+                                           : Color.white.opacity(0.14))
+                        )
+                }
+                .accessibilityLabel("Erkannte Gelenke einblenden")
+                .accessibilityValue(showsPoseSkeleton ? "an" : "aus")
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+
+            Spacer()
+        }
     }
 
     private var counter: some View {
@@ -716,16 +755,25 @@ extension View {
 
 struct CameraPreview: UIViewRepresentable {
     @ObservedObject var camera: PushUpCamera
+    var showsSkeleton = false
 
     func makeUIView(context: Context) -> PreviewUIView {
         let view = PreviewUIView()
         view.previewLayer.videoGravity = .resizeAspectFill
         view.previewLayer.session = camera.session
         view.attachedStatus = camera.status
+        view.showsSkeleton = showsSkeleton
+        // Die Gelenke kommen direkt aus der Vision-Queue auf den Main Thread und
+        // werden in der Vorschau-Ebene gezeichnet, ohne SwiftUI neu zu rendern.
+        camera.onJointsUpdate = { [weak view] joints in
+            view?.joints = joints
+        }
         return view
     }
 
     func updateUIView(_ uiView: PreviewUIView, context: Context) {
+        uiView.showsSkeleton = showsSkeleton
+
         // Eine Vorschau-Ebene, die vor dem Aufbau der Session zugewiesen wurde,
         // bleibt schwarz. Deshalb bei jedem Statuswechsel neu zuweisen.
         guard uiView.attachedStatus != camera.status else { return }
@@ -745,12 +793,179 @@ final class PreviewUIView: UIView {
         layer as! AVCaptureVideoPreviewLayer
     }
 
+    /// Debug-Gelenke aus `PushUpCamera` (ungedreht, Ursprung oben links).
+    var joints: [PushUpCamera.PoseJoint] = [] {
+        didSet { updateSkeleton() }
+    }
+
+    var showsSkeleton = false {
+        didSet {
+            guard showsSkeleton != oldValue else { return }
+            updateSkeleton()
+        }
+    }
+
+    private let boneLayer = CAShapeLayer()
+    private let jointLayer = CAShapeLayer()
+
+    /// Eingezeichnete Verbindungen: Arme, Schulterlinie, Hüftlinie und Rumpf.
+    private static let bones: [(VNHumanBodyPoseObservation.JointName,
+                                VNHumanBodyPoseObservation.JointName)] = [
+        (.leftShoulder, .leftElbow), (.leftElbow, .leftWrist),
+        (.rightShoulder, .rightElbow), (.rightElbow, .rightWrist),
+        (.leftShoulder, .rightShoulder),
+        (.leftHip, .rightHip),
+        (.leftShoulder, .leftHip), (.rightShoulder, .rightHip)
+    ]
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .black
+        clipsToBounds = true
+
+        let accent = UIColor(red: 0.45, green: 0.9, blue: 0.55, alpha: 1)
+
+        boneLayer.fillColor = UIColor.clear.cgColor
+        boneLayer.strokeColor = accent.cgColor
+        boneLayer.lineWidth = 3
+        boneLayer.lineCap = .round
+        boneLayer.lineJoin = .round
+        boneLayer.shadowColor = UIColor.black.cgColor
+        boneLayer.shadowOpacity = 0.7
+        boneLayer.shadowRadius = 2
+        boneLayer.shadowOffset = .zero
+
+        jointLayer.fillColor = accent.cgColor
+        jointLayer.strokeColor = UIColor.black.withAlphaComponent(0.6).cgColor
+        jointLayer.lineWidth = 1.5
+        jointLayer.shadowColor = UIColor.black.cgColor
+        jointLayer.shadowOpacity = 0.7
+        jointLayer.shadowRadius = 2
+        jointLayer.shadowOffset = .zero
+
+        layer.addSublayer(boneLayer)
+        layer.addSublayer(jointLayer)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // aspectFill und Gerätedrehung ändern die Zuordnung – bei jeder neuen
+        // Größe neu rechnen.
+        updateSkeleton()
+    }
+
+    private func updateSkeleton() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        boneLayer.frame = bounds
+        jointLayer.frame = bounds
+
+        guard showsSkeleton, bounds.width > 0, bounds.height > 0, !joints.isEmpty else {
+            boneLayer.path = nil
+            jointLayer.path = nil
+            CATransaction.commit()
+            return
+        }
+
+        var points: [VNHumanBodyPoseObservation.JointName: CGPoint] = [:]
+        for joint in joints {
+            points[joint.name] = layerPoint(for: joint)
+        }
+
+        let bones = UIBezierPath()
+        for (start, end) in Self.bones {
+            guard let a = points[start], let b = points[end] else { continue }
+            bones.move(to: a)
+            bones.addLine(to: b)
+        }
+        boneLayer.path = bones.cgPath
+
+        let dots = UIBezierPath()
+        for joint in joints {
+            guard let point = points[joint.name] else { continue }
+            // Sicher erkannte Gelenke erscheinen größer.
+            let radius = 3.5 + CGFloat(joint.confidence) * 5
+            dots.append(UIBezierPath(ovalIn: CGRect(x: point.x - radius,
+                                                    y: point.y - radius,
+                                                    width: radius * 2,
+                                                    height: radius * 2)))
+        }
+        jointLayer.path = dots.cgPath
+        CATransaction.commit()
+    }
+
+    /// Rechnet einen Gelenkpunkt aus dem ungedrehten Kamerabild in die
+    /// Vorschau-Ebene.
+    ///
+    /// Ohne Rotation übernimmt das die eingebaute Umrechnung der Vorschau-Ebene
+    /// (inklusive `videoGravity` und Spiegelung). Nur wenn die Verbindung einen
+    /// Winkel ungleich 0 meldet, rechnet das Overlay Rotation und Spiegelung
+    /// selbst und setzt den Punkt in den Videobereich der Vorschau ein.
+    private func layerPoint(for joint: PushUpCamera.PoseJoint) -> CGPoint {
+        let connection = previewLayer.connection
+        let angle = Int((connection?.videoRotationAngle ?? 0).rounded()) % 360
+
+        guard angle != 0 else {
+            return previewLayer.layerPointConverted(fromCaptureDevicePoint: joint.location)
+        }
+
+        // Ursprung oben links im ungedrehten Kamerabild; positive Winkel drehen
+        // das Bild im Uhrzeigersinn.
+        var point = joint.location
+        switch angle {
+        case 90:
+            point = CGPoint(x: 1 - point.y, y: point.x)
+        case 180:
+            point = CGPoint(x: 1 - point.x, y: 1 - point.y)
+        case 270:
+            point = CGPoint(x: point.y, y: 1 - point.x)
+        default:
+            break
+        }
+
+        if connection?.isVideoMirrored == true {
+            point.x = 1 - point.x
+        }
+
+        let rect = rotatedVideoRect(for: angle)
+        guard rect.width > 0, rect.height > 0 else {
+            return previewLayer.layerPointConverted(fromCaptureDevicePoint: joint.location)
+        }
+        return CGPoint(x: rect.minX + point.x * rect.width,
+                       y: rect.minY + point.y * rect.height)
+    }
+
+    /// Bereich, den das gedrehte Kamerabild in der Vorschau einnimmt. Für das
+    /// ungedrehte Bild liefert ihn die Vorschau-Ebene selbst; bei 90°/270° wird
+    /// nur das Seitenverhältnis getauscht.
+    private func rotatedVideoRect(for angle: Int) -> CGRect {
+        let unrotated = previewLayer.layerRectConverted(
+            fromMetadataOutputRect: CGRect(x: 0, y: 0, width: 1, height: 1)
+        )
+        guard unrotated.width > 0, unrotated.height > 0 else { return .zero }
+
+        let aspect = (angle == 90 || angle == 270)
+            ? unrotated.height / unrotated.width
+            : unrotated.width / unrotated.height
+        guard aspect > 0 else { return .zero }
+
+        let bounds = previewLayer.bounds
+        let width: CGFloat
+        let height: CGFloat
+        if bounds.width / bounds.height > aspect {
+            width = bounds.width
+            height = width / aspect
+        } else {
+            height = bounds.height
+            width = height * aspect
+        }
+        return CGRect(x: bounds.midX - width / 2,
+                      y: bounds.midY - height / 2,
+                      width: width,
+                      height: height)
     }
 }

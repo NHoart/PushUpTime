@@ -40,6 +40,26 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     /// Schulterbreiten, falls eine Pose erkannt wurde.
     @Published private(set) var poseMetric: Double?
 
+    /// Ein von Vision erkannter Punkt für das Debug-Overlay.
+    struct PoseJoint: Equatable {
+        let name: VNHumanBodyPoseObservation.JointName
+        /// Normalisiert im ungedrehten Kamerabild, Ursprung oben links. Die
+        /// Vorschau rechnet Rotation, Spiegelung und aspectFill selbst um.
+        let location: CGPoint
+        let confidence: Float
+
+        /// Gelenke, die das Overlay einzeichnet.
+        static let trackedNames: [VNHumanBodyPoseObservation.JointName] = [
+            .leftShoulder, .rightShoulder,
+            .leftElbow, .rightElbow,
+            .leftWrist, .rightWrist,
+            .leftHip, .rightHip
+        ]
+    }
+
+    /// Wird auf dem Main Thread mit den aktuellen Gelenken aufgerufen (Debug-Overlay).
+    var onJointsUpdate: (([PoseJoint]) -> Void)?
+
     /// Muss vor `start()` gesetzt werden.
     var mode: Mode = .pushUps
     var target = 30
@@ -85,6 +105,8 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
     private var twistArmed = false
     private var publishedAngle: Double?
     private var lastAnglePublish: CFTimeInterval = 0
+    private var lastJointPublish: CFTimeInterval = 0
+    private var jointsVisible = false
 
     // Nur auf dem Main Thread benutzt.
     private var didComplete = false
@@ -223,11 +245,13 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         var observation: VNHumanBodyPoseObservation?
+        var usedOrientation: CGImagePropertyOrientation?
 
         if let locked = lockedOrientation {
             observation = detect(pixelBuffer, orientation: locked)
             if let observation, poseScore(observation) >= minJointConfidence {
                 lostFrames = 0
+                usedOrientation = locked
             } else {
                 observation = nil
                 lostFrames += 1
@@ -243,11 +267,12 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
             if let found = probe(pixelBuffer) {
                 observation = found.0
                 lockedOrientation = found.1
+                usedOrientation = found.1
                 lostFrames = 0
             }
         }
 
-        handlePose(observation)
+        handlePose(observation, orientation: usedOrientation)
     }
 
     /// Probiert alle vier Bild-Orientierungen und nimmt das beste Ergebnis.
@@ -299,12 +324,66 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
 
     // MARK: - Zählen
 
-    private func handlePose(_ observation: VNHumanBodyPoseObservation?) {
+    private func handlePose(_ observation: VNHumanBodyPoseObservation?,
+                            orientation: CGImagePropertyOrientation?) {
+        publishPoseJoints(observation, orientation: orientation)
         switch mode {
         case .pushUps:
             handlePushUpPose(observation)
         case .russianTwists:
             handleTwistPose(observation)
+        }
+    }
+
+    // MARK: - Debug-Overlay
+
+    /// Meldet die erkannten Gelenke gedrosselt an das Vorschau-Overlay.
+    private func publishPoseJoints(_ observation: VNHumanBodyPoseObservation?,
+                                   orientation: CGImagePropertyOrientation?) {
+        guard let observation, let orientation else {
+            // Keine Pose: Punkte sofort verschwinden lassen, statt sie stehen zu lassen.
+            if jointsVisible {
+                jointsVisible = false
+                publish { self.onJointsUpdate?([]) }
+            }
+            return
+        }
+
+        let now = CACurrentMediaTime()
+        if jointsVisible, now - lastJointPublish < 0.08 { return }
+        lastJointPublish = now
+
+        var joints: [PoseJoint] = []
+        for name in PoseJoint.trackedNames {
+            guard let point = try? observation.recognizedPoint(name),
+                  point.confidence >= 0.05 else { continue }
+            joints.append(PoseJoint(
+                name: name,
+                location: devicePoint(fromVision: point.location, orientation: orientation),
+                confidence: point.confidence
+            ))
+        }
+
+        jointsVisible = !joints.isEmpty
+        publish { self.onJointsUpdate?(joints) }
+    }
+
+    /// Vision liefert normalisierte Punkte (Ursprung unten links) im aufgerichteten
+    /// Bild. Die Vorschau-Ebene erwartet das ungedrehte Kamerabild mit Ursprung
+    /// oben links – deshalb wird die Bild-Orientierung hier rückgängig gemacht.
+    private func devicePoint(fromVision point: CGPoint,
+                             orientation: CGImagePropertyOrientation) -> CGPoint {
+        let x = point.x
+        let y = 1 - point.y
+        switch orientation {
+        case .down, .downMirrored:
+            return CGPoint(x: 1 - x, y: y)
+        case .right, .rightMirrored:
+            return CGPoint(x: 1 - y, y: 1 - x)
+        case .left, .leftMirrored:
+            return CGPoint(x: y, y: x)
+        default:
+            return CGPoint(x: x, y: y)
         }
     }
 
@@ -535,7 +614,10 @@ final class PushUpCamera: NSObject, ObservableObject, AVCaptureVideoDataOutputSa
         twistAmplitude = nil
         twistSeenAt = 0
         twistArmed = false
+        lastJointPublish = 0
+        jointsVisible = false
         publish { self.poseMetric = nil }
+        publish { self.onJointsUpdate?([]) }
     }
 
     // MARK: - Zählung (Main Thread)
